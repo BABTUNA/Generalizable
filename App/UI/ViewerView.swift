@@ -16,22 +16,48 @@ struct ViewerView: View {
         var id: String { rawValue }
     }
 
+    private enum ViewerScreen: String, CaseIterable, Identifiable {
+        case explore = "Explore"
+        case scan = "Scan"
+        var id: String { rawValue }
+    }
+
     // `-panel controls` is a screenshot-verification convenience (not part of the scripted-
     // screenshot launch-argument spec) so build_sim.sh can capture the controls tab directly.
     @State private var compactTab: CompactTab = CommandLine.arguments.contains("controls") ? .controls : .overview
 
+    // `-scan` opens the BodyMaps-style Scan mode directly (screenshot-verification convenience,
+    // same pattern as `-panel controls` above). Default stays Explore otherwise.
+    @State private var screen: ViewerScreen = CommandLine.arguments.contains("-scan") ? .scan : .explore
+
     var body: some View {
-        DuoLayout {
-            SliceCanvas(
-                bundle: model.bundle,
-                cut: model.cut,
-                mode: model.mode,
-                visibleLayerIDs: model.visibleLayerIDs,
-                selectedFinding: model.selectedFinding,
-                window: model.windowValues
-            )
-        } controls: {
-            controlsArea
+        Group {
+            switch screen {
+            case .explore:
+                DuoLayout {
+                    SliceCanvas(
+                        bundle: model.bundle,
+                        cut: model.cut,
+                        mode: model.mode,
+                        visibleLayerIDs: model.visibleLayerIDs,
+                        selectedFinding: model.selectedFinding,
+                        window: model.windowValues
+                    )
+                } controls: {
+                    controlsArea
+                }
+            case .scan:
+                ScanView(model: model)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Screen", selection: $screen) {
+                    ForEach(ViewerScreen.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+            }
         }
         .onChange(of: model.cut.tiltDegrees) { _, _ in
             model.clampSliceOffsetToExtent()
