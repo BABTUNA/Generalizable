@@ -45,7 +45,13 @@
         {
           "path": "App",
           "excludes": [
-            "Cases/**"
+            "Cases/**",
+            "AI/**",
+            "Engine/**",
+            "Experience/**",
+            "Import/**",
+            "Models/**",
+            "Views/**"
           ]
         },
         {

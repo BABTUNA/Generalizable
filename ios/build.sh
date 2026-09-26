@@ -1,7 +1,12 @@
 #!/bin/zsh
-# Usage: ./build.sh [derivedDataDir]  — builds Lumen for the iPhone Duo simulator.
+# Usage: ./build.sh — builds Generalizable for the iOS Simulator (iPhone Duo needs Xcode 27.1).
+# One shared derived-data dir + a lock so parallel agents never run two builds at once
+# (ten separate caches filled the disk on 2026-09-26).
 set -e
 cd "$(dirname "$0")"
+LOCK=/tmp/gz-build.lock
+until mkdir "$LOCK" 2>/dev/null; do sleep 3; done
+trap 'rmdir "$LOCK"' EXIT
 xcodegen generate --quiet
-DD=/tmp/lumen-dd  # single shared cache: parallel caches filled the disk
-xcodebuild -project Lumen.xcodeproj -scheme Lumen -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DD" build 2>&1 | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" | head -60
+xcodebuild -project Generalizable.xcodeproj -scheme Generalizable -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/gz-dd build 2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)" | head -60

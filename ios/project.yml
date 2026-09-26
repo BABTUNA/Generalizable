@@ -1,4 +1,4 @@
-name: Lumen
+name: Generalizable
 options:
   bundleIdPrefix: dev.patliu
   deploymentTarget:
@@ -10,27 +10,27 @@ settings:
     CODE_SIGNING_ALLOWED: "NO"
     MTL_LANGUAGE_REVISION: Metal30
 targets:
-  Lumen:
+  Generalizable:
     type: application
     platform: iOS
     sources:
-      - path: Lumen
+      - path: Generalizable
         excludes: ["Resources/Cases/**"]
-      - path: Lumen/Resources/Cases
+      - path: Generalizable/Resources/Cases
         type: folder
         buildPhase: resources
     info:
-      path: Lumen/Info.plist
+      path: Generalizable/Info.plist
       properties:
         UILaunchScreen: {}
-        CFBundleDisplayName: Lumen
+        CFBundleDisplayName: Generalizable
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.patliu.lumen
-  LumenTests:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.patliu.generalizable
+  GeneralizableTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [LumenTests]
+    sources: [GeneralizableTests]
     dependencies:
-      - target: Lumen
+      - target: Generalizable
