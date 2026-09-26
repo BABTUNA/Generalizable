@@ -1,0 +1,14 @@
+{
+  "agent_id": "cc-l6-docs",
+  "role": "worker",
+  "kind": "claude-code-session",
+  "model": "claude-opus-5-5",
+  "machine": "Overpriced Hardware",
+  "lane": "L6-demo-docs",
+  "owns_paths": ["README.md", "docs/DEMO_SCRIPT.md", "scripts/demo_tour.sh"],
+  "branch": "agent/cc/l6-demo-docs",
+  "handoff": null,
+  "session": "generalizable-11",
+  "registered_utc": "2026-09-26T20:12:14Z",
+  "status": "active"
+}
