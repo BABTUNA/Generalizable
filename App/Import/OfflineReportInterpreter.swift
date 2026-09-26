@@ -68,6 +68,7 @@ enum OfflineReportInterpreter {
   ]
 
   private static let regionKeywords: [(String, BodyRegion)] = [
+    ("lung bases", .rightLungLowerLobe), ("both bases", .rightLungLowerLobe), ("bibasilar", .rightLungLowerLobe),
     ("right upper lobe", .rightLungUpperLobe), ("rul", .rightLungUpperLobe),
     ("right middle lobe", .rightLungLowerLobe), ("right lower lobe", .rightLungLowerLobe), ("rll", .rightLungLowerLobe),
     ("left upper lobe", .leftLungUpperLobe), ("lul", .leftLungUpperLobe), ("lingula", .leftLungUpperLobe),

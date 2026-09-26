@@ -122,7 +122,9 @@ struct ScanStageView: View {
   private func markers(size: CGSize) -> some View {
     let plane = model.plane
     let pxPerMM = size.width / CGFloat(ViewerModel.sliceFOV.x)
-    ForEach(Array(model.scanCase.findings.enumerated()), id: \.element.id) { index, finding in
+    let ordered = Array(model.scanCase.findings.enumerated())
+      .sorted { a, _ in a.element.id != model.selectedFindingID }
+    ForEach(ordered, id: \.element.id) { index, finding in
       let distance = abs(plane.distance(to: finding.anchorMM))
       let radius = max(CGFloat(finding.sizeMM ?? 12) / 2, 6)
       if distance < Float(radius) + 10 {
