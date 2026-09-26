@@ -1,5 +1,5 @@
 import XCTest
-@testable import Lumen
+@testable import Generalizable
 
 final class InteractionTests: XCTestCase {
     func testWindowLevelDragMapping() {

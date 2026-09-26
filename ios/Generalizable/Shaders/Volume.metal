@@ -1,4 +1,4 @@
-// Lumen GPU volume raycaster (DVR + MIP), one full-screen triangle, ray per pixel.
+// Generalizable GPU volume raycaster (DVR + MIP), one full-screen triangle, ray per pixel.
 //
 // Prior art (read before writing):
 // - NiiVue, github.com/niivue/niivue, packages/niivue/src/shader-srcs.ts (kRenderFunc /

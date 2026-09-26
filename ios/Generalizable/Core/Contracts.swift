@@ -1,4 +1,4 @@
-// Shared contracts for every module in Lumen. Owned by the integrator (not by any one
+// Shared contracts for every module in Generalizable. Owned by the integrator (not by any one
 // agent). Change only with a stated reason; everything else compiles against this.
 //
 // Conventions
@@ -91,6 +91,29 @@ struct LoadedCase: Sendable {
     let info: CaseInfo
     let ct: CTVolume
     let labels: LabelVolume?
+    /// Model output bundled with the case (Cases/<id>/ai.json + ai_heatmap.nii.gz). nil if none.
+    var ai: AIResult? = nil
+}
+
+// MARK: - AI model output (precomputed offline by a real model; see ios/tools/ml/)
+
+struct AIResult: Sendable {
+    struct ClassProb: Sendable, Hashable, Codable { var name: String; var probability: Float }
+    /// e.g. "ianpan/ct-head-hemorrhage-detection"
+    var model: String
+    var license: String
+    var disclaimer: String
+    /// Whole-series probabilities, e.g. subdural 0.996.
+    var series: [ClassProb]
+    /// Per axial slice (canonical z index), probability of the headline class, 0...1.
+    var sliceProbability: [Float]
+    /// Class the heatmap/slice curve refer to, e.g. "subdural".
+    var headlineClass: String
+    /// Voxel heatmap on the CT grid, 0...255 = probability. nil if the model gives none.
+    var heatmap: LabelVolume?
+    /// Honest validation vs the expert mask, if known (e.g. Dice 0.69).
+    var diceVsExpert: Float?
+    var peakSlice: Int? { sliceProbability.indices.max { sliceProbability[$0] < sliceProbability[$1] } }
 }
 
 // MARK: - Organs (label ids and colours ported from BodyMaps
@@ -102,7 +125,9 @@ enum Organ: UInt8, CaseIterable, Identifiable, Sendable, Codable {
          kidneyRight, liver, lungLeft, lungRight, pancreas, pancreasBody, pancreasHead,
          pancreasTail, pancreaticDuct, pancreaticLesion, postcava, prostate, spleen,
          stomach, superiorMesentericArtery, veins, intestine, renalVeinLeft,
-         renalVeinRight, cbdStent, liverLesion, kidneyLesion, colonLesion
+         renalVeinRight, cbdStent, liverLesion, kidneyLesion, colonLesion,
+         // Head CT (CQ500 case, labels 1-4 from Generalizable's App/Cases/head remapped to 36-39)
+         skin, skull, brain, hemorrhage
 
     var id: UInt8 { rawValue }
 
@@ -112,7 +137,7 @@ enum Organ: UInt8, CaseIterable, Identifiable, Sendable, Codable {
         key.replacingOccurrences(of: "_", with: " ").capitalized
             .replacingOccurrences(of: "Cbd", with: "CBD")
     }
-    var isLesion: Bool { [.pancreaticLesion, .liverLesion, .kidneyLesion, .colonLesion].contains(self) }
+    var isLesion: Bool { [.pancreaticLesion, .liverLesion, .kidneyLesion, .colonLesion, .hemorrhage].contains(self) }
 
     /// RGBA 0...255 exactly as BodyMaps ships them.
     var rgba: SIMD4<UInt8> { Organ.colors[Int(rawValue) - 1] }
@@ -128,6 +153,7 @@ enum Organ: UInt8, CaseIterable, Identifiable, Sendable, Codable {
         "pancreatic_lesion", "postcava", "prostate", "spleen", "stomach",
         "superior_mesenteric_artery", "veins", "intestine", "renal_vein_left",
         "renal_vein_right", "cbd_stent", "liver_lesion", "kidney_lesion", "colon_lesion",
+        "skin", "skull", "brain", "hemorrhage",
     ]
     static let colors: [SIMD4<UInt8>] = [
         [255, 140, 0, 254], [255, 165, 0, 254], [255, 0, 0, 254], [0, 191, 255, 254],
@@ -139,6 +165,8 @@ enum Organ: UInt8, CaseIterable, Identifiable, Sendable, Codable {
         [138, 43, 226, 254], [255, 99, 71, 254], [255, 69, 0, 254], [106, 90, 205, 254],
         [255, 200, 120, 254], [100, 149, 237, 254], [70, 130, 180, 254], [192, 192, 192, 254],
         [255, 140, 0, 254], [255, 215, 0, 254], [220, 20, 60, 254],
+        // head: colours from App/Cases/head/layers.json
+        [232, 184, 156, 254], [237, 230, 218, 254], [201, 167, 232, 254], [255, 0, 170, 254],
     ]
 }
 
@@ -174,7 +202,10 @@ struct WindowLevel: Hashable, Sendable, Identifiable {
     static let liver = WindowLevel(name: "Liver", center: 80, width: 150)
     static let lung = WindowLevel(name: "Lung", center: -600, width: 1500)
     static let bone = WindowLevel(name: "Bone", center: 400, width: 1800)
-    static let presets: [WindowLevel] = [.softTissue, .abdomen, .liver, .lung, .bone]
+    static let brain = WindowLevel(name: "Brain", center: 40, width: 80)
+    /// Subdural window (W 200 / L 80), the standard setting for spotting thin extra-axial blood.
+    static let subdural = WindowLevel(name: "Subdural", center: 80, width: 200)
+    static let presets: [WindowLevel] = [.softTissue, .abdomen, .liver, .lung, .bone, .brain, .subdural]
 }
 
 /// Maps between a plane's voxel coordinates and a view's points. The slice renderer
@@ -265,6 +296,9 @@ final class ViewerState {
     /// Oblique cut for the 3D view / Duo hinge: unit normal in canonical voxel space
     /// through `cursor`. nil = no clipping.
     var clipNormal: SIMD3<Float>?
+    /// Show the AI heatmap overlay / probability track when the case has an AIResult.
+    var showAI = true
+    var aiOpacity: Float = 0.6
 
     enum Tool: String, CaseIterable, Identifiable, Sendable {
         case navigate, windowLevel, measure, probe

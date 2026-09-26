@@ -15,7 +15,7 @@ struct ViewerToolbar: View {
     var body: some View {
         VStack(spacing: Theme.Space.s) {
             HStack(spacing: Theme.Space.m) {
-                LumenIconButton(systemName: "chevron.left", action: onBack)
+                GeneralizableIconButton(systemName: "chevron.left", action: onBack)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(state.loaded.info.title)
                         .font(Theme.ui(15, .semibold)).foregroundStyle(Theme.text).lineLimit(1)
@@ -23,22 +23,22 @@ struct ViewerToolbar: View {
                         .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
-                LumenIconButton(systemName: "list.bullet.below.rectangle", active: showOrgans) {
+                GeneralizableIconButton(systemName: "list.bullet.below.rectangle", active: showOrgans) {
                     showOrgans.toggle()
                 }
-                LumenIconButton(systemName: "doc.text.magnifyingglass", active: showReport) {
+                GeneralizableIconButton(systemName: "doc.text.magnifyingglass", active: showReport) {
                     showReport = true
                 }
             }
             ScrollView(.horizontal) {
                 HStack(spacing: Theme.Space.s) {
-                    LumenSegmented(selection: $state.activeTool, items: ViewerState.Tool.allCases.map {
-                        .init(value: $0, title: nil, icon: $0.lumenIcon)
+                    GeneralizableSegmented(selection: $state.activeTool, items: ViewerState.Tool.allCases.map {
+                        .init(value: $0, title: nil, icon: $0.gzIcon)
                     }, compact: true)
                     windowMenu
                     labelsControl
-                    LumenSegmented(selection: layoutBinding, items: ViewerLayout.allCases.map {
-                        .init(value: $0, title: nil, icon: $0.lumenIcon)
+                    GeneralizableSegmented(selection: layoutBinding, items: ViewerLayout.allCases.map {
+                        .init(value: $0, title: nil, icon: $0.gzIcon)
                     }, compact: true)
                 }
                 .padding(.vertical, 1)

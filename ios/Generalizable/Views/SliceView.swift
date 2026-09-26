@@ -31,7 +31,7 @@ extension Plane {
 struct SliceView: View {
     let plane: Plane
     @Bindable var state: ViewerState
-    @AppStorage("lumen.labelOutline") private var outline = true
+    @AppStorage("generalizable.labelOutline") private var outline = true
 
     private var viewport: SliceViewport {
         state.viewports[plane] ?? SliceViewport(plane: plane, viewSize: .zero)

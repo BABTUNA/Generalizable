@@ -117,7 +117,7 @@ struct LibraryView: View {
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(LinearGradient(colors: [Theme.accent, Theme.volumeColor],
                                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    Text("Lumen").font(.system(size: 32, weight: .bold, design: .rounded))
+                    Text("Generalizable").font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.text)
                 }
                 Text("Abdominal CT · AI organ segmentation")
@@ -139,7 +139,7 @@ struct LibraryView: View {
                 .font(Theme.ui(15))
         }
         .padding(.horizontal, Theme.Space.m).frame(height: 40)
-        .lumenCard(radius: Theme.Radius.control + 3)
+        .gzCard(radius: Theme.Radius.control + 3)
     }
 
     @ViewBuilder private var content: some View {
@@ -222,7 +222,7 @@ private struct CaseCard: View {
                 Text(info.title).font(Theme.ui(14, .semibold)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(info.id).font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary).lineLimit(1)
                 if !chips.isEmpty {
-                    HStack(spacing: 4) { ForEach(chips, id: \.self) { LumenChip(text: $0) } }
+                    HStack(spacing: 4) { ForEach(chips, id: \.self) { GeneralizableChip(text: $0) } }
                         .lineLimit(1)
                 }
                 if let d = download {
@@ -235,7 +235,7 @@ private struct CaseCard: View {
             .padding(Theme.Space.m)
         }
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .lumenCard()
+        .gzCard()
         .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
     }
 }

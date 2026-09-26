@@ -1,10 +1,10 @@
-// Lumen app entry. Owned by agent shell.
+// Generalizable app entry. Owned by agent shell.
 // Launch with `-openCase PanTS_00008205` to skip the library and open a case directly
 // (launch arguments land in UserDefaults' argument domain).
 import SwiftUI
 
 @main
-struct LumenApp: App {
+struct GeneralizableApp: App {
     private let autoOpen = UserDefaults.standard.string(forKey: "openCase")
 
     init() {

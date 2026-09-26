@@ -3,7 +3,7 @@
 # requires-python = ">=3.9"
 # dependencies = ["numpy", "nibabel", "pillow"]
 # ///
-"""Build Lumen's bundled case library (ios/Lumen/Resources/Cases/<CASE_ID>/).
+"""Build Generalizable's bundled case library (ios/Generalizable/Resources/Cases/<CASE_ID>/).
 
 Per case:
   ct.nii.gz               int16 HU, RAS+ closest canonical, largest dim <= 256 (block mean)
@@ -47,11 +47,11 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]            # BodyMaps-website/
 SCANS = ROOT / "scans"
-OUT = ROOT / "ios" / "Lumen" / "Resources" / "Cases"
+OUT = ROOT / "ios" / "Generalizable" / "Resources" / "Cases"
 HERO = "PanTS_00008205"
 HF_PROFILE = "https://huggingface.co/datasets/BodyMaps/iPanTSMini/resolve/main/profile_only/{id}/profile.jpg"
 
-# Organ ids 1..35 == order of Organ.keys in ios/Lumen/Core/Contracts.swift
+# Organ ids 1..35 == order of Organ.keys in ios/Generalizable/Core/Contracts.swift
 ORGAN_KEYS = [
     "adrenal_gland_left", "adrenal_gland_right", "aorta", "bladder", "celiac_artery",
     "colon", "common_bile_duct", "duodenum", "femur_left", "femur_right", "gall_bladder",
@@ -172,7 +172,7 @@ def fetch_profile(case_id, path, tries=3):
     url = HF_PROFILE.format(id=case_id)
     for i in range(tries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "lumen-prepare-cases"})
+            req = urllib.request.Request(url, headers={"User-Agent": "generalizable-prepare-cases"})
             with urllib.request.urlopen(req, timeout=20) as r:
                 data = r.read()
             if data[:2] == b"\xff\xd8":

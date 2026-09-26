@@ -7,7 +7,7 @@
 //   within a proximity to edit; label shows length in mm
 // - packages/tools/src/tools/annotation/ProbeTool.ts  — readout of value + index/world coords at a point
 // - packages/tools/src/tools/CrosshairsTool.ts     — click jumps the shared crosshair (cursor) to the point
-// Math lives in InteractionMath.swift (unit-tested in LumenTests/InteractionTests.swift).
+// Math lives in InteractionMath.swift (unit-tested in GeneralizableTests/InteractionTests.swift).
 // Deviations: touch-first — inertia on slice scroll, pinch/two-finger pan always active, and a
 // right-edge slice scrubber (BodyMaps' viewer has a slice slider).
 import SwiftUI

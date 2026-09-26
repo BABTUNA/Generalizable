@@ -1,6 +1,6 @@
 import XCTest
 import simd
-@testable import Lumen
+@testable import Generalizable
 
 final class AnalysisTests: XCTestCase {
 

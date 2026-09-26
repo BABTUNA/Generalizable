@@ -1,6 +1,6 @@
 // Owned by agent duo.
 //
-// Hinge-first iPhone Duo experience for the Lumen viewer.
+// Hinge-first iPhone Duo experience for the Generalizable viewer.
 //
 // Apple API surface used (verified in the iOS 27.1 SDK shipped with Xcode 27.1, not from memory):
 // - SwiftUI `View.onHingeChange(isEnabled:_:)`, `DeviceHingeContext { hinge: DeviceHinge? }`,

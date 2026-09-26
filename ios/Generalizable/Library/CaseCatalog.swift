@@ -17,7 +17,7 @@
 //
 // Remote listing: HF tree API, paginated via the RFC 5988 `Link: <…>; rel="next"`
 // header (the same scheme huggingface_hub's `paginate` follows in
-// huggingface_hub/utils/_pagination.py). Cached to Caches/Lumen/hf-listing.json.
+// huggingface_hub/utils/_pagination.py). Cached to Caches/Generalizable/hf-listing.json.
 // Resume: URLSession's NSURLSessionDownloadTaskResumeData from the failure error is
 // kept on disk and reused on the next attempt.
 
@@ -379,7 +379,7 @@ final class CaseCatalog {
 
     nonisolated static var listingCacheURL: URL {
         let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Lumen", isDirectory: true)
+            .appendingPathComponent("Generalizable", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("hf-listing.json")
     }

@@ -1,4 +1,4 @@
-// Slice.metal — MPR slice rendering for Lumen.
+// Slice.metal — MPR slice rendering for Generalizable.
 //
 // Prior art: NiiVue (github.com/niivue/niivue), packages/niivue/src/shader-srcs.ts:
 //   - `vertSliceMMShader`: the quad carries in-plane texture coords and the slice index is a

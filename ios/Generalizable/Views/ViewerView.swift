@@ -82,8 +82,8 @@ struct ViewerView: View {
                     .id(state.focusedPlane)
                     .transition(.opacity)
                 HStack(spacing: Theme.Space.m) {
-                    LumenSegmented(selection: $state.focusedPlane, items: [Plane.axial, .sagittal, .coronal].map {
-                        .init(value: $0, title: $0.lumenTitle, icon: nil)
+                    GeneralizableSegmented(selection: $state.focusedPlane, items: [Plane.axial, .sagittal, .coronal].map {
+                        .init(value: $0, title: $0.gzTitle, icon: nil)
                     }, compact: true)
                     SliceScrubber(state: state, plane: state.focusedPlane)
                 }
@@ -108,7 +108,7 @@ struct ViewerView: View {
     private func slicePane(_ p: Plane) -> some View {
         let focused = state.layout == .quad && state.focusedPlane == p
         return PaneChrome(
-            title: p.lumenTitle, badge: p.lumenShort, tint: Theme.planeColor(p), focused: focused,
+            title: p.gzTitle, badge: p.gzShort, tint: Theme.planeColor(p), focused: focused,
             trailing: "\(Int(state.slice(for: p)) + 1)/\(state.sliceCount(for: p))",
             maximised: state.layout != .quad,
             onExpand: { toggleMaximise(p) }
@@ -128,8 +128,8 @@ struct ViewerView: View {
                     if state.volumeMode == .meshes { MeshView(state: state) } else { VolumeView(state: state) }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                LumenSegmented(selection: $state.volumeMode, items: VolumeRenderMode.allCases.map {
-                    .init(value: $0, title: $0.lumenTitle, icon: nil)
+                GeneralizableSegmented(selection: $state.volumeMode, items: VolumeRenderMode.allCases.map {
+                    .init(value: $0, title: $0.gzTitle, icon: nil)
                 }, compact: true)
                 .scaleEffect(state.layout == .quad ? 0.86 : 1)
                 .padding(.bottom, 8)

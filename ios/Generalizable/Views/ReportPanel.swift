@@ -170,7 +170,7 @@ struct ReportPanel: View {
     @ViewBuilder private func shareMenu(_ r: CaseReport) -> some View {
         let text = Analysis.plainText(r, info: state.loaded.info)
         Menu {
-            ShareLink(item: text, subject: Text("Lumen report \(r.caseID)")) {
+            ShareLink(item: text, subject: Text("Generalizable report \(r.caseID)")) {
                 Label("Share as Text", systemImage: "doc.plaintext")
             }
             if let pdfURL {
@@ -187,7 +187,7 @@ struct ReportPanel: View {
             .frame(width: 612).padding(0)
         let renderer = ImageRenderer(content: page)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Lumen-Report-\(info.id).pdf")
+            .appendingPathComponent("Generalizable-Report-\(info.id).pdf")
         var ok = false
         renderer.render { size, draw in
             var box = CGRect(x: 0, y: 0, width: 612, height: max(792, size.height))

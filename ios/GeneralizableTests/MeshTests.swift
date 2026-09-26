@@ -1,6 +1,6 @@
 import XCTest
 import simd
-@testable import Lumen
+@testable import Generalizable
 
 final class MeshTests: XCTestCase {
     private func sphereVolume(r: Float, n: Int32 = 48, spacing: SIMD3<Float> = [1, 1, 1],

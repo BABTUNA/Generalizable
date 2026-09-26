@@ -1,4 +1,4 @@
-// Lumen design tokens. Owned by agent shell.
+// Generalizable design tokens. Owned by agent shell.
 //
 // Plane accent colours follow the 3D Slicer convention (axial = red, sagittal = yellow,
 // coronal = green; Slicer/Libs/MRML/Core/vtkMRMLSliceNode.cxx `SetOrientationToAxial` etc.
@@ -59,14 +59,14 @@ enum Theme {
 }
 
 extension Plane {
-    var lumenTitle: String { rawValue.capitalized }
-    var lumenShort: String {
+    var gzTitle: String { rawValue.capitalized }
+    var gzShort: String {
         switch self { case .axial: "AX"; case .sagittal: "SAG"; case .coronal: "COR" }
     }
 }
 
 extension ViewerState.Tool {
-    var lumenTitle: String {
+    var gzTitle: String {
         switch self {
         case .navigate: "Navigate"
         case .windowLevel: "Window / Level"
@@ -74,7 +74,7 @@ extension ViewerState.Tool {
         case .probe: "Probe"
         }
     }
-    var lumenIcon: String {
+    var gzIcon: String {
         switch self {
         case .navigate: "hand.point.up.left"
         case .windowLevel: "circle.lefthalf.filled"
@@ -85,16 +85,16 @@ extension ViewerState.Tool {
 }
 
 extension ViewerLayout {
-    var lumenTitle: String {
+    var gzTitle: String {
         switch self { case .quad: "2×2"; case .single: "Single"; case .volumeFocus: "3D" }
     }
-    var lumenIcon: String {
+    var gzIcon: String {
         switch self { case .quad: "square.grid.2x2"; case .single: "square"; case .volumeFocus: "cube" }
     }
 }
 
 extension VolumeRenderMode {
-    var lumenTitle: String {
+    var gzTitle: String {
         switch self { case .meshes: "Meshes"; case .volume: "Volume"; case .mip: "MIP" }
     }
 }
@@ -102,7 +102,7 @@ extension VolumeRenderMode {
 // MARK: - Reusable controls
 
 /// Capsule segmented control with a sliding selection pill.
-struct LumenSegmented<T: Hashable>: View {
+struct GeneralizableSegmented<T: Hashable>: View {
     struct Item { var value: T; var title: String?; var icon: String? }
     @Binding var selection: T
     var items: [Item]
@@ -143,7 +143,7 @@ struct LumenSegmented<T: Hashable>: View {
 }
 
 /// Round icon button used in toolbars.
-struct LumenIconButton: View {
+struct GeneralizableIconButton: View {
     var systemName: String
     var active = false
     var action: () -> Void
@@ -162,7 +162,7 @@ struct LumenIconButton: View {
 }
 
 /// Small metadata chip.
-struct LumenChip: View {
+struct GeneralizableChip: View {
     var text: String
     var icon: String? = nil
     var tint: Color = Theme.textSecondary
@@ -178,7 +178,7 @@ struct LumenChip: View {
     }
 }
 
-struct LumenCardBackground: ViewModifier {
+struct GeneralizableCardBackground: ViewModifier {
     var radius: CGFloat = Theme.Radius.card
     func body(content: Content) -> some View {
         content
@@ -188,5 +188,5 @@ struct LumenCardBackground: ViewModifier {
 }
 
 extension View {
-    func lumenCard(radius: CGFloat = Theme.Radius.card) -> some View { modifier(LumenCardBackground(radius: radius)) }
+    func gzCard(radius: CGFloat = Theme.Radius.card) -> some View { modifier(GeneralizableCardBackground(radius: radius)) }
 }
