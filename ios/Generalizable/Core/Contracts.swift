@@ -134,13 +134,17 @@ enum Organ: UInt8, CaseIterable, Identifiable, Sendable, Codable {
     /// BodyMaps key, e.g. "adrenal_gland_left".
     var key: String { Organ.keys[Int(rawValue) - 1] }
     var displayName: String {
-        key.replacingOccurrences(of: "_", with: " ").capitalized
+        if let l = CaseLayers.active[rawValue] { return l.name }
+        return key.replacingOccurrences(of: "_", with: " ").capitalized
             .replacingOccurrences(of: "Cbd", with: "CBD")
     }
-    var isLesion: Bool { [.pancreaticLesion, .liverLesion, .kidneyLesion, .colonLesion, .hemorrhage].contains(self) }
+    var isLesion: Bool {
+        if !CaseLayers.active.isEmpty { return false }
+        return [.pancreaticLesion, .liverLesion, .kidneyLesion, .colonLesion, .hemorrhage].contains(self)
+    }
 
-    /// RGBA 0...255 exactly as BodyMaps ships them.
-    var rgba: SIMD4<UInt8> { Organ.colors[Int(rawValue) - 1] }
+    /// RGBA 0...255 exactly as BodyMaps ships them, unless the open case ships its own layers.json.
+    var rgba: SIMD4<UInt8> { CaseLayers.active[rawValue]?.rgba ?? Organ.colors[Int(rawValue) - 1] }
     var color: Color {
         Color(red: Double(rgba.x) / 255, green: Double(rgba.y) / 255, blue: Double(rgba.z) / 255)
     }
@@ -168,6 +172,47 @@ enum Organ: UInt8, CaseIterable, Identifiable, Sendable, Codable {
         // head: colours from App/Cases/head/layers.json
         [232, 184, 156, 254], [237, 230, 218, 254], [201, 167, 232, 254], [255, 0, 170, 254],
     ]
+}
+
+// MARK: - Per-case layers (layers.json)
+
+/// One entry of a case's layers.json (Generalizable's bundle schema: id = label value, name,
+/// "#RRGGBB" colour, peel_order, blurb). A case that ships one — the Sun, the circuit board —
+/// is labelled by it instead of the BodyMaps organ table; label values must be 1...39 so they
+/// stay addressable as `Organ` (every mask, LUT, mesh and list path keys on the raw value).
+struct CaseLayer: Decodable, Sendable {
+    var id: UInt8
+    var name: String
+    var color: String
+    var peelOrder: Int?
+    var blurb: String?
+
+    enum CodingKeys: String, CodingKey { case id, name, color, blurb, peelOrder = "peel_order" }
+
+    var rgba: SIMD4<UInt8> {
+        let v = UInt32(color.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0xFFFFFF
+        return [UInt8(v >> 16 & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v & 0xFF), 254]
+    }
+}
+
+enum CaseLayers {
+    /// Layers of the case currently open (one viewer at a time); empty = use the organ table.
+    nonisolated(unsafe) static var active: [UInt8: CaseLayer] = [:]
+
+    /// Reads `<folder>/layers.json` and makes it active (clears it when the case has none).
+    static func activate(folder: URL) {
+        let url = folder.appendingPathComponent("layers.json")
+        let list = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode([CaseLayer].self, from: $0) }
+        active = Dictionary((list ?? []).filter { (1...39).contains($0.id) }.map { ($0.id, $0) },
+                            uniquingKeysWith: { a, _ in a })
+    }
+
+    /// Organs in peel order (outermost first), for "Peel next layer".
+    static var peelOrder: [Organ] {
+        active.values.filter { $0.peelOrder != nil }
+            .sorted { $0.peelOrder! < $1.peelOrder! }
+            .compactMap { Organ(rawValue: $0.id) }
+    }
 }
 
 // MARK: - Display

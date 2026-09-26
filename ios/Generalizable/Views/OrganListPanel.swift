@@ -131,6 +131,12 @@ struct OrganListPanel: View {
                     .font(Theme.mono(11)).foregroundStyle(Theme.textTertiary)
             }
             Spacer()
+            // Cases with a layers.json peel order: hide the outermost layer still showing.
+            if let next = CaseLayers.peelOrder.first(where: { state.visibleOrgans.contains($0) }) {
+                Button("Peel") { withAnimation(.snappy) { _ = state.visibleOrgans.remove(next) } }
+                    .font(Theme.ui(13, .semibold))
+                    .padding(.trailing, Theme.Space.s)
+            }
             let allOn = !present.isEmpty && Set(present).isSubset(of: state.visibleOrgans)
             Button(allOn ? "Hide all" : "Show all") {
                 withAnimation(.snappy) {

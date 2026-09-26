@@ -209,6 +209,9 @@ enum VolumeLoader {
             outInfo.metadata["dims"] = "\(g.dims.x)×\(g.dims.y)×\(g.dims.z)"
             outInfo.metadata["spacing"] = String(format: "%.2f×%.2f×%.2f mm", g.spacing.x, g.spacing.y, g.spacing.z)
         }
+        // Before anything builds the colour LUT, stats or meshes: a case's own layers.json
+        // (Sun, circuit board) replaces the organ table's names and colours.
+        CaseLayers.activate(folder: ctURL.deletingLastPathComponent())
         var loaded = LoadedCase(info: outInfo, ct: ctVol, labels: labelVol)
         if let (ai, runtime, device) = AILoader.load(folder: ctURL.deletingLastPathComponent(), geometry: g) {
             loaded.ai = ai
