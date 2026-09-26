@@ -120,15 +120,35 @@ struct LibraryView: View {
                     Text("Generalizable").font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.text)
                 }
-                Text("Abdominal CT · AI organ segmentation")
+                Text("One viewer for anything you can slice")
                     .font(Theme.ui(13, .medium)).foregroundStyle(Theme.textSecondary)
+                Text("Demo · public research data · not a diagnosis")
+                    .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary)
             }
             Spacer()
-            Text("\(catalog.cases.count)")
-                .font(Theme.mono(13, .semibold)).foregroundStyle(Theme.textSecondary)
-                + Text(" cases").font(Theme.ui(13)).foregroundStyle(Theme.textTertiary)
         }
         .padding(.top, Theme.Space.l)
+    }
+
+    private func sectionHeader(_ title: String, count: Int) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title).font(Theme.ui(15, .semibold)).foregroundStyle(Theme.text)
+            Spacer()
+            Text("\(count)").font(Theme.mono(12, .semibold)).foregroundStyle(Theme.textTertiary)
+        }
+        .padding(.top, Theme.Space.s)
+    }
+
+    private func grid(_ cases: [CaseInfo]) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 158, maximum: 260), spacing: Theme.Space.m)],
+                  spacing: Theme.Space.m) {
+            ForEach(cases) { c in
+                Button { open(c) } label: {
+                    CaseCard(info: c, download: catalog.downloads[c.id])
+                }
+                .buttonStyle(PressableCardStyle())
+            }
+        }
     }
 
     private var searchField: some View {
@@ -157,14 +177,16 @@ struct LibraryView: View {
             .foregroundStyle(Theme.textSecondary)
             .frame(maxWidth: .infinity).padding(.top, 120)
         } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 158, maximum: 260), spacing: Theme.Space.m)],
-                      spacing: Theme.Space.m) {
-                ForEach(filtered) { c in
-                    Button { open(c) } label: {
-                        CaseCard(info: c, download: catalog.downloads[c.id])
-                    }
-                    .buttonStyle(PressableCardStyle())
-                }
+            // Bundled demo cases first, apart from the thousands of downloadable catalog cases.
+            let local = filtered.filter(\.isBundled)
+            let remote = filtered.filter { !$0.isBundled }
+            if !local.isEmpty {
+                sectionHeader("Ready offline", count: local.count)
+                grid(local)
+            }
+            if !remote.isEmpty {
+                sectionHeader("BodyMaps catalog · downloads on open", count: remote.count)
+                grid(remote)
             }
         }
     }
@@ -194,12 +216,15 @@ private struct CaseCard: View {
     var info: CaseInfo
     var download: Double?
 
-    private var chips: [String] {
-        let preferred = ["sex", "age", "scanner", "phase", "manufacturer", "diagnosis"]
-        var out: [String] = []
-        for k in preferred { if let v = info.metadata[k], !v.isEmpty { out.append(k == "age" ? "\(v) y" : v) } }
-        if out.isEmpty { out = info.metadata.keys.sorted().prefix(3).compactMap { info.metadata[$0] } }
-        return Array(out.prefix(3))
+    /// One readable line instead of three truncated chips: the finding if the case has one,
+    /// else the AI headline, else demographics.
+    private var detail: (text: String, alert: Bool)? {
+        let m = info.metadata
+        if let f = m["finding"], !f.isEmpty { return (f, true) }
+        if let a = m["ai"], !a.isEmpty { return (a, false) }
+        if let o = m["organs"], !o.isEmpty { return ("\(o) organs segmented", false) }
+        let demo = [m["sex"], m["age"].map { "\($0) y" }, m["phase"]].compactMap { $0 }.filter { !$0.isEmpty }
+        return demo.isEmpty ? nil : (demo.joined(separator: " · "), false)
     }
 
     private var isLocal: Bool { info.isBundled || info.ctURL?.isFileURL == true }
@@ -219,11 +244,18 @@ private struct CaseCard: View {
                     .padding(8)
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text(info.title).font(Theme.ui(14, .semibold)).foregroundStyle(Theme.text).lineLimit(1)
-                Text(info.id).font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary).lineLimit(1)
-                if !chips.isEmpty {
-                    HStack(spacing: 4) { ForEach(chips, id: \.self) { GeneralizableChip(text: $0) } }
-                        .lineLimit(1)
+                // Region and short name on separate lines: "Head CT · CQ500-243" truncated on one.
+                Text(info.metadata["region"] ?? info.title)
+                    .font(Theme.ui(15, .semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(info.metadata["name"] ?? info.id)
+                    .font(Theme.mono(11)).foregroundStyle(Theme.textTertiary).lineLimit(1)
+                if let d = detail {
+                    HStack(spacing: 6) {
+                        if d.alert { Circle().fill(Color.red).frame(width: 7, height: 7) }
+                        Text(d.text).font(Theme.ui(12, .medium))
+                            .foregroundStyle(d.alert ? Theme.text : Theme.textSecondary)
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 if let d = download {
                     HStack(spacing: 6) {
@@ -233,6 +265,7 @@ private struct CaseCard: View {
                 }
             }
             .padding(Theme.Space.m)
+            .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)   // equal card heights
         }
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .gzCard()
