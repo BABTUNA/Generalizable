@@ -338,6 +338,13 @@ final class CaseCatalog {
         }
         if let meta = jsonObject(dir.appendingPathComponent("meta.json")) {
             if let lic = meta["license"] as? String { c.metadata["license"] = lic }
+            // Non-CT cases (prepare_raw_case.py) name themselves; the id prefix can't.
+            if let r = meta["region"] as? String {
+                let n = meta["name"] as? String ?? c.metadata["name"] ?? c.id
+                c.metadata["region"] = r
+                c.metadata["name"] = n
+                c.title = "\(r) · \(n)"
+            }
             if let d = meta["dims"] as? [Int], d.count == 3 {
                 c.metadata["dims"] = d.map(String.init).joined(separator: "×")
             }

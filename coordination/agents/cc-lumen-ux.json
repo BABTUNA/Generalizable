@@ -6,8 +6,14 @@
   "machine": "Overpriced Hardware",
   "lane": "L12-lumen-ux (Daniel: integrate our features into Patrick's ios app + UI revamp)",
   "owns_paths": [
-    "ios/Generalizable/Views/",
     "docs/DEMO_SCRIPT.md",
+    "ios/Generalizable/Core/Contracts.swift (CaseLayer/CaseLayers + Organ name/colour override only)",
+    "ios/Generalizable/IO/VolumeLoader.swift (CaseLayers.activate call only)",
+    "ios/Generalizable/Library/CaseCatalog.swift (meta region/name only)",
+    "ios/Generalizable/Resources/Cases/Synthetic_Circuit/",
+    "ios/Generalizable/Resources/Cases/Synthetic_Sun/",
+    "ios/Generalizable/Views/",
+    "ios/tools/prepare_raw_case.py",
     "scripts/demo_tour.sh"
   ],
   "branch": "main",
