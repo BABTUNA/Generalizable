@@ -196,6 +196,7 @@ private struct MeshSceneView: UIViewRepresentable {
         weak var view: SCNView?
         var nodes: [Organ: SCNNode] = [:]
         var caps: [Organ: SCNNode] = [:]
+        var lastLoggedCount = -1, lastLoggedClip = false
         let clipPlaneNode = SCNNode()
         var onSelect: ((Organ?) -> Void)?
         var lastFocus: SIMD3<Float>?
@@ -305,6 +306,12 @@ private struct MeshSceneView: UIViewRepresentable {
                 caps[organ]?.removeFromParentNode(); caps[organ] = nil
             }
             let clipOn = p.clip != nil
+            #if DEBUG
+            if p.meshes.count != lastLoggedCount || clipOn != lastLoggedClip {
+                lastLoggedCount = p.meshes.count; lastLoggedClip = clipOn
+                NSLog("[mesh3d] nodes=%d visible=%d clip=%@", nodes.count, p.visible.count, String(describing: p.clip))
+            }
+            #endif
             let plane = p.clip ?? SIMD4<Float>(0, 0, 1, 0)
             let planeValue = NSValue(scnVector4: SCNVector4(plane.x, plane.y, plane.z, plane.w))
             for (organ, n) in nodes {
