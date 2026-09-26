@@ -4,11 +4,12 @@
 // Cut-plane geometry (PRD addendum A1) and the hinge-to-tilt mapping (A2/A3).
 //
 // Geometry convention (A1/A4), all in RAS mm:
-//   - tilt 0°  -> axial plane, normal = +z.
+//   - tilt 0°  -> axial plane viewed from the feet (normal -z), anterior up.
 //   - tilt rotates the plane about the case's left-right axis (+x). uAxis (+x
 //     at tilt 0) stays fixed under tilt, since it IS the tilt axis.
 //   - rotation rotates the (already-tilted) frame about the vertical axis (+z).
-//   - tilt 90°, rotation 0° -> coronal plane, normal along y (front-facing).
+//   - tilt 90°, rotation 0° -> coronal plane viewed from the front (normal +y), head up.
+//   - radiological convention: patient right (RAS +x) on the viewer's left.
 
 import Foundation
 import simd
@@ -44,16 +45,17 @@ struct CutPlane: Equatable {
     private var tiltRadians: Float { Float(tiltDegrees) * .pi / 180 }
     private var rotationRadians: Float { Float(rotationDegrees) * .pi / 180 }
 
-    /// Plane normal. +z at tilt 0 (axial); rotates about +x with tilt, then about +z with rotation.
+    /// Plane normal = uAxis × vAxis, pointing toward the viewer: -z (from the feet) at tilt 0,
+    /// +y (from the front, anterior) at tilt 90. Radiological convention: patient's right
+    /// (RAS +x) appears on the viewer's left.
     var normal: SIMD3<Float> {
-        let tilted = Self.rotateX(SIMD3<Float>(0, 0, 1), radians: tiltRadians)
-        return Self.rotateZ(tilted, radians: rotationRadians)
+        simd_normalize(simd_cross(uAxis, vAxis))
     }
 
-    /// In-plane axis corresponding to the case's left-right (+x) direction. This is the tilt axis,
-    /// so it is unaffected by tilt and only turns with the rotation control.
+    /// In-plane screen-right axis. RAS +x is the patient's RIGHT, so screen-right is -x
+    /// (radiological convention). This is the tilt axis, so only the rotation control turns it.
     var uAxis: SIMD3<Float> {
-        let tilted = Self.rotateX(SIMD3<Float>(1, 0, 0), radians: tiltRadians)
+        let tilted = Self.rotateX(SIMD3<Float>(-1, 0, 0), radians: tiltRadians)
         return Self.rotateZ(tilted, radians: rotationRadians)
     }
 
