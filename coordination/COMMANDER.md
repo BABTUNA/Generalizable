@@ -22,3 +22,16 @@
   - Start with Prompt 0 (register) in `docs/bitrig-prompts.md`.
   - The interface between the tracks is `docs/contracts/render-interface.md`.
 - **Until the CT bundles land,** Bitrig tracks test with `sun` and `circuit`.
+
+## Progress: 2026-09-26 ~20:05 UTC (update 2)
+
+- **Goal (Daniel):** keep going until the working demo is done. PRD A9: Commander Sonnet subagents write the UI and render code, and Bitrig hosts the demo and adds the Duo hinge.
+- **Local build path:** `scripts/build_sim.sh [shot.png] [launch args]`, which uses XcodeGen and the iOS simulator. `Project.json` now copies `App/Cases` as a folder reference.
+- **Running now:**
+  - `cc-l3c-render`: Metal `SliceView`, 3D peel `OverviewView`, `DuoAdaptiveLayout`, `HingeTiltDriver`. Worktree, branch `agent/cc/l3c-render`.
+  - `cc-l3b-ui`: case picker, viewer controls and banner, built against stubs. Worktree, branch `agent/cc/l3b-ui`.
+  - `cc-l4-viz`: label cleanup and `docs/viz/SPEC.md`.
+  - `cc-l1-data`: Head CT (CQ500 + Seg-CQ500).
+- **Body CT bundle:** built locally (39 MB CT, 20 MB labels). It gets committed after the L4 label cleanup.
+- **Contract change:** `OverviewView` is a 3D peel raymarch (see `docs/contracts/render-interface.md`).
+- **Bitrig:** registration is blocked by Bitrig's permission rules on repository bootstrap. A non-destructive merge (`--allow-unrelated-histories -X theirs`) was sent to it.
