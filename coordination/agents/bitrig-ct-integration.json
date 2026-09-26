@@ -1,0 +1,20 @@
+{
+  "agent_id": "bitrig-ct-integration",
+  "role": "worker",
+  "kind": "bitrig-agent",
+  "model": "GPT-6",
+  "machine": "Bitrig workspace",
+  "lane": "CT-viewer-integration",
+  "owns_paths": [
+    "App/App.swift",
+    "App/ContentView.swift",
+    "Project.json",
+    "App/Scan/",
+    "Tests/CTScanChecks.swift"
+  ],
+  "branch": "integration/fold-ct-viewer",
+  "handoff": "coordination/handoffs/ct-viewer-integration.md",
+  "session": null,
+  "registered_utc": "2026-09-26T21:45:11.468238+00:00",
+  "status": "active"
+}
