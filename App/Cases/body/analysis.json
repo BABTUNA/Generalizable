@@ -1,0 +1,35 @@
+{
+  "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+  "provider_router": "https://router.huggingface.co/v1/chat/completions",
+  "created_utc": "2026-09-26T20:42:06Z",
+  "latency_s": 7.8,
+  "views": [
+    "axial",
+    "coronal"
+  ],
+  "window": [
+    40,
+    400
+  ],
+  "blind": true,
+  "roi": false,
+  "label": "Automated research description \u2014 not a diagnosis",
+  "result": {
+    "structures": [
+      "lungs",
+      "heart",
+      "liver",
+      "spine",
+      "ribs",
+      "diaphragm"
+    ],
+    "observations": [
+      "The lungs appear mostly clear with some scattered dark spots that may be air-filled spaces or artifacts.",
+      "The heart and liver appear as large, soft-tissue structures in the chest and upper abdomen, respectively.",
+      "The spine and ribs appear as bright white structures, consistent with dense bone."
+    ],
+    "image_quality": "moderate resolution, typical for research CT",
+    "confidence": "medium",
+    "caveat": "This is an automated research description from de-identified data and is not a medical diagnosis."
+  }
+}

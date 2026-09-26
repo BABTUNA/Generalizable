@@ -261,3 +261,13 @@ Sources: [bleepingswift: onHingeChange](https://bleepingswift.com/blog/onhingech
 - **Pivot row:** the pivot (finding) sits on the hinge line, and display "up" is `CutPlane.vAxis`.
 - **Foreshortening:** `upperForeshortening(heightPts:)` gives the viewer's vertical compression. Keystone pre-compensation is available but off by default.
 - **Tested:** `scripts/core_selftest.sh` checks the geometry and loads all four bundles.
+
+### A11: ML description via Hugging Face (Adopted, 2026-09-26; Daniel: "get an ML model to give any kind of analysis… it should be a Hugging Face API call")
+
+- **How it runs:** `scripts/ml/hf_analyze.py` calls `router.huggingface.co/v1/chat/completions` with general vision-language models (Qwen3-VL-235B, Qwen2.5-VL-72B) on the app's own slices. There is also a Postman collection in `docs/postman/`. Results are cached in `App/Cases/<case>/analysis.json`, and the in-app "AI description" card reads that cache, so the demo **stays offline**.
+- **Honesty rules:**
+  - The model gets **no diagnosis in the prompt** (`--blind`). For the head it sees only a close-up of the annotated region (`--roi`), without being told what it is.
+  - The card states how the model was prompted.
+  - The model output never includes diagnosis, prognosis or treatment.
+- **Measured result:** told the answer, the models echo it. Blind, both models **missed the subdural bleed** on the full slices, even with a subdural window. With the region close-up, Qwen2.5-VL-72B reported "a variation in density compared to surrounding brain tissue". The shipped head result is that blind + ROI answer. For the body, Qwen3-VL-235B correctly identified the lungs, heart, liver, spine, ribs and diaphragm.
+- **Not used:** MUSK (a pathology-slide model; manually gated; CC BY-NC-ND), MedGemma (no hosted provider), and prognosis output of any kind (out of scope per the PRD).

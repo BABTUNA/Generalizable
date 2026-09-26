@@ -67,10 +67,10 @@ def window_png(img2d, level, width, flip_lr=True):
     return buf.getvalue()
 
 
-def render(case):
+def render(case, window=None, roi=False):
     d, meta, ct, findings = load(case)
     presets = meta["window_presets"]
-    level, width = presets.get("brain" if case == "head" else "density" if "density" in presets else "soft")
+    level, width = window or presets.get("brain" if case == "head" else "density" if "density" in presets else "soft")
     nz, ny, nx = ct.shape
     if findings:
         c = np.array(findings[0]["center_mm"], float)
@@ -82,7 +82,14 @@ def render(case):
         title = case
     axial = window_png(ct[k, :, :], level, width)    # x across, y (anterior) up
     coronal = window_png(ct[:, j, :], level, width)  # x across, z (superior) up
-    return {"axial": axial, "coronal": coronal}, title, level, width, findings
+    views = {"axial": axial, "coronal": coronal}
+    if roi and findings:
+        # Close-up of the annotated region: tells the model WHERE to look, not WHAT is there.
+        half = int(max(30, 1.6 * findings[0]["radius_mm"]) / meta["spacing_mm"][0])
+        y0, y1 = max(0, j - half), min(ny, j + half)
+        x0, x1 = max(0, i - half), min(nx, i + half)
+        views["axial close-up of the highlighted region"] = window_png(ct[k, y0:y1, x0:x1], level, width)
+    return views, title, level, width, findings
 
 
 def call(model, pngs, title, level, width, hint, tok):
@@ -105,8 +112,11 @@ def main():
     ap.add_argument("case")
     ap.add_argument("--model")
     ap.add_argument("--dry-run", action="store_true", help="render slices to build/ml/ and stop")
+    ap.add_argument("--window", help="level,width in HU, e.g. 75,215 (subdural window)")
+    ap.add_argument("--roi", action="store_true", help="add a close-up of the annotated region (location only)")
+    ap.add_argument("--blind", action="store_true", help="don't tell the model what the dataset annotates (honest test)")
     a = ap.parse_args()
-    pngs, title, level, width, findings = render(a.case)
+    pngs, title, level, width, findings = render(a.case, [float(x) for x in a.window.split(',')] if a.window else None, a.roi)
     out = ROOT / "build/ml"
     out.mkdir(parents=True, exist_ok=True)
     for name, png in pngs.items():
@@ -115,6 +125,8 @@ def main():
         print("rendered", [str(out / f"{a.case}_{n}.png") for n in pngs])
         return
     hint = "The dataset annotates one region; you may mention where the image looks abnormal, hedged." if findings else ""
+    if a.blind:
+        title, hint = a.case, ("The third image is a close-up of a region researchers highlighted; describe how it compares with nearby tissue. " if a.roi else "") + "If anything looks unusual, you may mention it, hedged."
     tok = token()
     errors = []
     for model in ([a.model] if a.model else MODELS):
@@ -122,7 +134,7 @@ def main():
             t0 = time.time()
             result, raw = call(model, pngs, title, level, width, hint, tok)
             record = {"model": model, "provider_router": ROUTER, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                      "latency_s": round(time.time() - t0, 1), "views": list(pngs), "window": [level, width],
+                      "latency_s": round(time.time() - t0, 1), "views": list(pngs), "window": [level, width], "blind": a.blind, "roi": a.roi,
                       "label": "Automated research description — not a diagnosis", "result": result}
             (ROOT / "App/Cases" / a.case / "analysis.json").write_text(json.dumps(record, indent=2) + "\n")
             print(json.dumps(record, indent=2))

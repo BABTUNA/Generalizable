@@ -17,7 +17,16 @@ struct CaseAnalysis: Decodable {
     var model: String
     var created_utc: String?
     var views: [String]?
+    var blind: Bool?
+    var roi: Bool?
     var result: Result
+
+    /// How the model was prompted, stated plainly so nobody mistakes an echo for a detection.
+    var promptDisclosure: String {
+        if blind == true && roi == true { return "Shown the highlighted region, not told what it is." }
+        if blind == true { return "Not told about any finding." }
+        return "Told what the dataset annotates."
+    }
 
     static func bundled(_ caseName: String) -> CaseAnalysis? {
         guard let url = Bundle.main.resourceURL?
@@ -30,7 +39,12 @@ struct CaseAnalysis: Decodable {
 struct AnalysisCard: View {
     let caseName: String
     @State private var analysis: CaseAnalysis?
-    @State private var expanded = true
+
+    init(caseName: String) {
+        self.caseName = caseName
+        // Load eagerly: a .task on an empty Group never runs because the Group never appears.
+        _analysis = State(initialValue: CaseAnalysis.bundled(caseName))
+    }
 
     var body: some View {
         Group {
@@ -52,7 +66,7 @@ struct AnalysisCard: View {
                     ForEach(Array((a.result.observations ?? []).enumerated()), id: \.offset) { _, o in
                         Text("• " + o).font(.subheadline)
                     }
-                    Text("\(a.model.split(separator: "/").last.map(String.init) ?? a.model) via Hugging Face, on \((a.views ?? []).joined(separator: " + ")) slices. \(a.result.caveat ?? "Automated research description — not a diagnosis.")")
+                    Text("\(a.model.split(separator: "/").last.map(String.init) ?? a.model) via Hugging Face, on the \(a.views?.count ?? 0) slice images shown. \(a.promptDisclosure) \(a.result.caveat ?? "Automated research description — not a diagnosis.")")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -62,6 +76,5 @@ struct AnalysisCard: View {
                 .accessibilityLabel("AI description, research only, not a diagnosis")
             }
         }
-        .task(id: caseName) { analysis = CaseAnalysis.bundled(caseName) }
     }
 }
