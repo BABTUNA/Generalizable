@@ -122,8 +122,11 @@ struct ScanStageView: View {
   private func markers(size: CGSize) -> some View {
     let plane = model.plane
     let pxPerMM = size.width / CGFloat(ViewerModel.sliceFOV.x)
-    let all = Array(model.scanCase.findings.enumerated())
-    let ordered = all.filter { $0.element.id != model.selectedFindingID } + all.filter { $0.element.id == model.selectedFindingID }
+    let all: [(offset: Int, element: Finding)] = Array(model.scanCase.findings.enumerated())
+    let selectedID: Finding.ID? = model.selectedFindingID
+    let others: [(offset: Int, element: Finding)] = all.filter { $0.element.id != selectedID }
+    let chosen: [(offset: Int, element: Finding)] = all.filter { $0.element.id == selectedID }
+    let ordered: [(offset: Int, element: Finding)] = others + chosen
     ForEach(ordered, id: \.element.id) { index, finding in
       let distance = abs(plane.distance(to: finding.anchorMM))
       let radius = max(CGFloat(finding.sizeMM ?? 12) / 2, 6)
