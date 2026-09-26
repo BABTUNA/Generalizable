@@ -1,0 +1,14 @@
+{
+  "agent_id": "cc-duo-fold",
+  "role": "worker",
+  "kind": "claude-code-session",
+  "model": "claude-opus-5-5",
+  "machine": "Overpriced Hardware",
+  "lane": "L13-duo-fold (Pat: make the iOS fold work like the Layer Lens artifact PzfR7pyW3vmAhbzrGqz47A; took over uncommitted Duo work from an idle session)",
+  "owns_paths": ["ios/Generalizable/Duo/", "ios/Generalizable/Shaders/Oblique.metal"],
+  "branch": "main",
+  "handoff": null,
+  "session": "generalizable-e0",
+  "registered_utc": "2026-09-26T22:47:00Z",
+  "status": "active"
+}
