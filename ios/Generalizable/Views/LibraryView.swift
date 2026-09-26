@@ -38,7 +38,7 @@ final class CaseSession: Identifiable {
                 stage = .ready
             } catch is CancellationError {
             } catch {
-                self.error = error.localizedDescription
+                self.error = Self.friendlyMessage(for: error)
                 stage = .failed
             }
         }
@@ -48,12 +48,22 @@ final class CaseSession: Identifiable {
 
     var stageText: String {
         switch stage {
-        case .downloading: "Downloading scan"
-        case .decoding: "Decoding volume"
-        case .preparing: "Preparing viewer"
+        case .downloading: "Downloading scan…"
+        case .decoding: "Decoding scan…"
+        case .preparing: "Preparing 3D…"
         case .ready: "Ready"
         case .failed: "Failed"
         }
+    }
+
+    /// CatalogError/VolumeLoader errors already read as plain sentences (see CatalogError);
+    /// anything else (raw NSError/system text) gets a generic, human fallback instead.
+    private static func friendlyMessage(for error: Error) -> String {
+        let raw = error.localizedDescription
+        if raw.isEmpty || raw.contains("Error Domain=") || raw.contains("NSError") || raw.contains("NS%") {
+            return "Couldn't load this scan. Check your connection and try again."
+        }
+        return raw
     }
 
     var progress: Double? {
@@ -159,6 +169,9 @@ struct LibraryView: View {
         .gzCard(radius: Theme.Radius.control + 3)
     }
 
+    // Demo cases (bundled: instant, no download) are grouped above the downloadable
+    // BodyMaps catalog so it's clear at a glance what opens instantly vs. what fetches
+    // over the network. The head CT (CaseCatalog.heroID) stays the hero, as before.
     @ViewBuilder private var content: some View {
         let list = filtered
         if catalog.cases.isEmpty {
@@ -168,33 +181,57 @@ struct LibraryView: View {
         } else if list.isEmpty {
             emptyState(icon: "magnifyingglass", title: "No matches for “\(query)”",
                        detail: "Try a case number like 8205")
+        } else if !query.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Space.m) {
+                sectionLabel("Results")
+                grid(list)
+            }
         } else {
-            let hero = query.isEmpty ? list.first : nil
+            let bundled = list.filter(\.isBundled)
+            let remote = list.filter { !$0.isBundled }
+            let hero = bundled.first
+            let demoRest = hero == nil ? bundled : Array(bundled.dropFirst())
             VStack(alignment: .leading, spacing: Theme.Space.m) {
                 if let hero {
                     Button { open(hero) } label: {
                         CaseCard(info: hero, download: catalog.downloads[hero.id], hero: true)
                     }
                     .buttonStyle(PressableCardStyle())
-                    sectionLabel("All studies")
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 260), spacing: Theme.Space.m)],
-                          spacing: Theme.Space.m) {
-                    ForEach(hero == nil ? list : Array(list.dropFirst())) { c in
-                        Button { open(c) } label: {
-                            CaseCard(info: c, download: catalog.downloads[c.id])
-                        }
-                        .buttonStyle(PressableCardStyle())
-                    }
+                if !demoRest.isEmpty {
+                    sectionLabel("Demo cases", detail: "Bundled with the app — open instantly, no download.")
+                    grid(demoRest)
+                }
+                if !remote.isEmpty {
+                    sectionLabel("BodyMaps catalog",
+                                 detail: "\(remote.count) studies from the BodyMaps research dataset · downloads when opened")
+                    grid(remote)
                 }
             }
         }
     }
 
-    private func sectionLabel(_ t: String) -> some View {
-        Text(t.uppercased()).font(Theme.ui(11, .semibold)).tracking(0.8)
-            .foregroundStyle(Theme.textTertiary)
-            .padding(.top, Theme.Space.xs)
+    private func grid(_ items: [CaseInfo]) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 260), spacing: Theme.Space.m)],
+                  spacing: Theme.Space.m) {
+            ForEach(items) { c in
+                Button { open(c) } label: {
+                    CaseCard(info: c, download: catalog.downloads[c.id])
+                }
+                .buttonStyle(PressableCardStyle())
+            }
+        }
+    }
+
+    private func sectionLabel(_ t: String, detail: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(t.uppercased()).font(Theme.ui(11, .semibold)).tracking(0.8)
+                .foregroundStyle(Theme.textTertiary)
+            if let detail {
+                Text(detail).font(Theme.ui(12)).foregroundStyle(Theme.textTertiary.opacity(0.85))
+            }
+        }
+        .padding(.top, Theme.Space.xs)
     }
 
     private func emptyState(icon: String?, title: String, detail: String?) -> some View {
@@ -269,11 +306,20 @@ private struct CaseCard: View {
     private var finding: String? { info.metadata["finding"] }
     private var ai: String? { info.metadata["ai"] }
 
+    /// Bundled cases with no local profile.jpg (e.g. the synthetic Sun/Circuit board demo
+    /// cases) fall through to a placeholder — never attempt a network fetch that would
+    /// only 404, since these ids don't exist in the remote catalog.
+    private var displayThumbnailURL: URL? {
+        if info.isBundled && info.thumbnailURL?.isFileURL != true { return nil }
+        return info.thumbnailURL
+    }
+    private var fallback: (symbol: String, tint: Color) { CaseThumbnail.fallback(for: info) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 Color.black
-                CaseThumbnail(url: info.thumbnailURL)
+                CaseThumbnail(url: displayThumbnailURL, fallbackSymbol: fallback.symbol, fallbackTint: fallback.tint)
             }
             .frame(height: hero ? 210 : 150).frame(maxWidth: .infinity)
             .clipped()
@@ -305,8 +351,8 @@ private struct CaseCard: View {
                 } else {
                     Text(info.id).font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary).lineLimit(1)
                 }
-                if hero, let model = info.metadata["aiModel"] {
-                    Text(model).font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary).lineLimit(1)
+                if hero, info.metadata["aiModel"] != nil {
+                    Text("AI detection model").font(Theme.ui(11, .medium)).foregroundStyle(Theme.textTertiary).lineLimit(1)
                 }
                 if let d = download {
                     HStack(spacing: 6) {
