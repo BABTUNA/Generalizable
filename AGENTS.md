@@ -17,6 +17,7 @@
   "owns_paths": ["…"],
   "branch": "…",
   "handoff": "coordination/handoffs/<lane>.md",
+  "session": "<Claude Code session name from ListAgents, or null for Bitrig>",
   "registered_utc": "…",
   "status": "active | done | blocked | stopped"
 }
@@ -27,6 +28,15 @@
 3. **Keep `status` current.** Set it to `done` or `stopped` when you finish or leave. A registration still marked `active` with no commit in the last 30 minutes counts as stale, and the Commander may reassign its lane.
 
 The Commander also lists every agent in the table in `coordination/TASKS.md`. If a registration and the task board disagree, the registration file is what shows who is actually working.
+
+## Talking to the Commander
+
+The Commander is the Claude Code session **`dqi26-a2`**.
+
+- **Claude Code workers** message it with `SendMessage`. The Commander replies and assigns work to the `session` recorded in the worker's registration.
+- **Bitrig agents and workers on other machines** communicate through their handoff files and `coordination/inbox/<agent-id>.md`.
+
+To register a new Sonnet worker, see `docs/worker-registration-prompt.md`.
 
 ## Then
 
