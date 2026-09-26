@@ -234,3 +234,30 @@ Every Bitrig step needs Daniel to paste the prompt, and Bitrig's permission rule
 - They verify it locally with `scripts/build_sim.sh`. It generates `Generalizable.xcodeproj` from `Project.json` with XcodeGen (gitignored), builds for an iOS 27.0 / 26.5 simulator, launches the app and takes a screenshot.
 - **Bitrig remains the demo host.** It imports the branch, builds and runs it, and owns the **Duo hinge integration**, because the iOS 27.1 SDK and the Duo simulator exist only there. It also polishes the result.
 - `Project.json` now copies `App/Cases` as a folder reference, so the cases keep their `Cases/<name>/` paths.
+
+### A10: Duo hinge API facts and fold geometry (Adopted, 2026-09-26, Commander)
+
+**Hinge API (iOS 27.1 SDK; not in the iOS 27.0 SDK installed here or in Bitrig):**
+- **SwiftUI:** `.onHingeChange(isEnabled:_:)` receives the old and new `DeviceHingeContext`.
+  - `context.hinge` is `DeviceHinge?`, which is nil on any non-Duo device.
+  - `hinge.angle` is a SwiftUI `Angle`.
+  - `hinge.status` is `.closed`, `.partiallyOpen` or `.fullyOpen`.
+- **UIKit:** `UIHingeInteraction` delivers `UIHinge`.
+  - **`UIHinge.angle` is a `CGFloat` in radians.**
+  - `status` has an extra `.unknown` case.
+- **What Apple leaves undocumented:** the angle range, the update rate, and the precision.
+- **Apple's positioning:** the angle is for continuous interactive effects (its own example is pitch bend); `status` is for layout.
+
+Sources: [bleepingswift: onHingeChange](https://bleepingswift.com/blog/onhingechange-hinge-angle-swiftui), [iPhone-Duo-by-Examples](https://github.com/artemnovichkov/iPhone-Duo-by-Examples), [Apple Tech Talk 111464](https://developer.apple.com/videos/play/tech-talks/111464/), and Bitrig's bundled Duo guide.
+
+**Rules for `DuoHingeSource`:**
+- Convert with `HingeConvention.openingAngle.openingDegrees(fromRadians: hinge.angle.radians)`, then pass the result through `HingeMapping`. **Never pass radians straight to `HingeMapping`.**
+- The convention (0 = closed, π = flat) is an assumption. Log the angle once in table pose and once when flat on the Duo simulator, and switch to `.deflectionFromFlat` if flat reads 0.
+- Use `status` to choose layouts: `.partiallyOpen` → table layout.
+
+**Fold geometry (`App/Core/DuoFoldGeometry.swift`):**
+- **Cut tilt:** in table pose the upper display's elevation above the table is `180° − opening`, which is exactly the A2 cut tilt. The slice on the upper display is the physical plane of the glass.
+- **No stretching:** the scale is physical and isotropic (`pointsPerMM`), so the anatomy doesn't zoom or stretch while folding.
+- **Pivot row:** the pivot (finding) sits on the hinge line, and display "up" is `CutPlane.vAxis`.
+- **Foreshortening:** `upperForeshortening(heightPts:)` gives the viewer's vertical compression. Keystone pre-compensation is available but off by default.
+- **Tested:** `scripts/core_selftest.sh` checks the geometry and loads all four bundles.

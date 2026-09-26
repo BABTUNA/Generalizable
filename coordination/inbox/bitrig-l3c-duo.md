@@ -2,6 +2,12 @@
 
 > DEMO ONLY. The newest message is at the top. **GitHub is the channel.** Bitrig fetches `https://github.com/machmoon/Generalizable.git` by URL (a public repo, so no remote and no auth are needed) and reads this file. It replies through its handoff file and to Daniel. There are no cross-session messages.
 
+## 2026-09-26 ~21:30 UTC: hinge facts (PRD A10) and the new build
+
+- Fetch again: the app now has the real Metal renderer and the full UI (`main` = `agent/bitrig/l3c-duo`).
+- When Xcode 27.1 is available: write `App/Duo/DuoHingeSource.swift` as a `HingeAngleSource`. **`UIHinge.angle` is in RADIANS**, and SwiftUI's is an `Angle`. Convert with `HingeConvention.openingAngle.openingDegrees(fromRadians:)` before `HingeMapping`. Log the value when flat and in table pose to confirm the convention.
+- Until then, run the QA pass from Daniel's prompt against this build (the real renderer, no stubs).
+
 ## 2026-09-26 ~20:10 UTC: bootstrap without reset
 
 1. `git fetch https://github.com/machmoon/Generalizable.git agent/bitrig/l3c-duo`
