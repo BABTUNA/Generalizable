@@ -22,7 +22,7 @@ This script follows the PRD "Pitch walkthrough" as amended by **A5**. The guided
 ### Beat 2 — Select the bleed (≈15 s)
 
 - **Tap:** the **Subdural hemorrhage** finding.
-- **Say:** "Select a finding and everything moves to it at once: the 3D view, the slice, the marker and a plain-language explanation. This one is bleeding between the brain and the skull. Three radiologists agreed on it."
+- **Say:** "Select a finding and the slice, the marker and a plain-language explanation all move to it at once. This one is bleeding between the brain and the skull. Three radiologists agreed on it."
 - **Audience sees:** the cut jumps to the bleed and a yellow ring marks it. The explanation appears with the finding.
 - **If it fails:** relaunch with `-case head -select 1`, or show `head_layers_t0.png` and read the explanation aloud.
 
