@@ -109,7 +109,7 @@ struct ViewerView: View {
         let focused = state.layout == .quad && state.focusedPlane == p
         return PaneChrome(
             title: p.gzTitle, badge: p.gzShort, tint: Theme.planeColor(p), focused: focused,
-            trailing: "\(Int(state.slice(for: p)) + 1)/\(state.sliceCount(for: p))",
+            trailing: "",
             maximised: state.layout != .quad,
             onExpand: { toggleMaximise(p) }
         ) {
@@ -155,21 +155,18 @@ private struct PaneChrome<Content: View>: View {
             Theme.pane
             content()
             HStack(alignment: .top, spacing: 6) {
-                HStack(spacing: 5) {
-                    RoundedRectangle(cornerRadius: 2).fill(tint).frame(width: 3, height: 11)
-                    Text(badge).font(Theme.mono(10, .bold)).foregroundStyle(Theme.text)
+                // SliceView draws plane name, n/N and W/L itself; the chrome only adds the
+                // 3D badge and the expand control (no duplicate labels).
+                if trailing == nil {
+                    HStack(spacing: 5) {
+                        RoundedRectangle(cornerRadius: 2).fill(tint).frame(width: 3, height: 11)
+                        Text(badge).font(Theme.mono(10, .bold)).foregroundStyle(Theme.text)
+                    }
+                    .padding(.horizontal, 7).frame(height: 22)
+                    .background(Capsule().fill(.black.opacity(0.55)))
+                    .allowsHitTesting(false)
                 }
-                .padding(.horizontal, 7).frame(height: 22)
-                .background(Capsule().fill(.black.opacity(0.55)))
-                .allowsHitTesting(false)
                 Spacer(minLength: 0)
-                if let trailing {
-                    Text(trailing).font(Theme.mono(10, .medium)).foregroundStyle(Theme.textSecondary)
-                        .padding(.horizontal, 7).frame(height: 22)
-                        .background(Capsule().fill(.black.opacity(0.55)))
-                        .contentTransition(.numericText())
-                        .allowsHitTesting(false)
-                }
                 Button(action: onExpand) {
                     Image(systemName: maximised ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 10, weight: .bold))
@@ -240,7 +237,8 @@ private struct ViewerStatusBar: View {
         }
         .font(Theme.mono(11))
         .lineLimit(1)
-        .padding(.horizontal, Theme.Space.l)
-        .frame(height: 30)
+        .padding(.leading, 72)   // Duo hinge chip (DuoSupport.swift) sits bottom-leading
+        .padding(.trailing, Theme.Space.l)
+        .frame(height: 40)
     }
 }

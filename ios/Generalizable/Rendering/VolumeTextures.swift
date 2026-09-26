@@ -7,6 +7,8 @@ final class VolumeTextures: @unchecked Sendable {
     let ct: MTLTexture          // .r16Sint, 3D, HU
     let labels: MTLTexture?     // .r8Uint, 3D, Organ raw values
     let organLUT: MTLTexture    // .rgba8Unorm, 1D (256), BodyMaps colours; alpha = 0 for 0
+    let aiHeatmap: MTLTexture?  // .r8Unorm, 3D, AI probability 0...1
+    let aiLUT: MTLTexture       // .rgba8Unorm, 1D (256), NiiVue inferno
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var cache: [String: VolumeTextures] = [:]
@@ -30,6 +32,9 @@ final class VolumeTextures: @unchecked Sendable {
         var lut = [UInt8](repeating: 0, count: 256 * 4)
         for o in Organ.allCases { let i = Int(o.rawValue) * 4; lut[i] = o.rgba.x; lut[i+1] = o.rgba.y; lut[i+2] = o.rgba.z; lut[i+3] = 255 }
         organLUT.replace(region: MTLRegionMake1D(0, 256), mipmapLevel: 0, withBytes: lut, bytesPerRow: 256 * 4)
+        aiHeatmap = c.ai?.heatmap.map { h in Self.make3D(dev, g, .r8Unorm, bytesPerVoxel: 1) { h.voxels.withUnsafeBytes { $0.baseAddress! } } }
+        aiLUT = dev.makeTexture(descriptor: d)!
+        aiLUT.replace(region: MTLRegionMake1D(0, 256), mipmapLevel: 0, withBytes: AILoader.infernoLUT, bytesPerRow: 256 * 4)
     }
 
     private static func make3D(_ dev: MTLDevice, _ g: VolumeGeometry, _ fmt: MTLPixelFormat, bytesPerVoxel: Int,

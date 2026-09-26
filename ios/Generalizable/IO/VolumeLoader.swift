@@ -209,8 +209,19 @@ enum VolumeLoader {
             outInfo.metadata["dims"] = "\(g.dims.x)×\(g.dims.y)×\(g.dims.z)"
             outInfo.metadata["spacing"] = String(format: "%.2f×%.2f×%.2f mm", g.spacing.x, g.spacing.y, g.spacing.z)
         }
+        var loaded = LoadedCase(info: outInfo, ct: ctVol, labels: labelVol)
+        if let (ai, runtime, device) = AILoader.load(folder: ctURL.deletingLastPathComponent(), geometry: g) {
+            loaded.ai = ai
+            var m = loaded.info.metadata
+            if let runtime { m["aiRuntime"] = String(format: "%.1f s", runtime) }
+            if let device { m["aiDevice"] = device }
+            loaded = LoadedCase(info: CaseInfo(id: outInfo.id, title: outInfo.title, ctURL: outInfo.ctURL,
+                                               labelURL: outInfo.labelURL, thumbnailURL: outInfo.thumbnailURL,
+                                               metadata: m, isBundled: outInfo.isBundled),
+                                ct: ctVol, labels: labelVol, ai: ai)
+        }
         progress?(1)
-        return LoadedCase(info: outInfo, ct: ctVol, labels: labelVol)
+        return loaded
     }
 
     // MARK: Internals

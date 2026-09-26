@@ -43,7 +43,8 @@ struct SliceView: View {
         return SliceParams(plane: plane, slice: Int(state.slice(for: plane)), viewport: viewport,
                            winLow: state.window.low, winHigh: state.window.high,
                            labelOpacity: state.labelOpacity, showLabels: state.showLabels,
-                           outline: outline, selected: state.selectedOrgan?.rawValue ?? 0, mask: mask)
+                           outline: outline, selected: state.selectedOrgan?.rawValue ?? 0, mask: mask,
+                           showAI: state.showAI && state.loaded.ai?.heatmap != nil, aiOpacity: state.aiOpacity)
     }
 
     var body: some View {
@@ -53,6 +54,10 @@ struct SliceView: View {
                 .allowsHitTesting(false)
             SliceInteractionLayer(plane: plane, state: state)
             annotations.allowsHitTesting(false)
+            if plane == .axial, let ai = state.loaded.ai {
+                VStack { HStack { AICard(state: state, ai: ai); Spacer() }; Spacer() }
+                    .padding(.top, 24).padding(.leading, 6)
+            }
         }
         .background(Color.black)
         .clipped()

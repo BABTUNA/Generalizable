@@ -65,7 +65,11 @@ final class MeshCache: @unchecked Sendable {
                     for (organ, box) in todo {
                         group.addTask(priority: .userInitiated) {
                             if Task.isCancelled { return nil }
-                            return SurfaceNets.extract(labels, organ: organ, box: box)
+                            let t0 = Date()
+                            let m = SurfaceNets.extract(labels, organ: organ, box: box)
+                            print(String(format: "[mesh] %@ %@: %d vox, %d tris, %.2fs", id, organ.key,
+                                         box.voxelCount, m?.triangleCount ?? 0, Date().timeIntervalSince(t0)))
+                            return m
                         }
                     }
                     for await m in group {

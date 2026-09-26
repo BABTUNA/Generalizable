@@ -101,6 +101,15 @@ enum SurfaceNets {
         return Int(s.x) * Int(s.y) * Int(s.z) > 2_000_000 ? 2 : 1
     }
 
+    /// Thin shells (e.g. the 2-voxel head skin: 204k voxels in a ~10M-voxel box) fill only a
+    /// few percent of their bounding box. A majority vote would erase them when downsampling,
+    /// so they use an any-voxel vote instead (dilates by < 1 block, keeps the shell closed).
+    static func isThinShell(_ box: LabelBox) -> Bool {
+        let s = box.size
+        let vol = Double(s.x) * Double(s.y) * Double(s.z)
+        return vol > 0 && Double(box.voxelCount) / vol < 0.05
+    }
+
     // MARK: extraction
 
     static func extract(_ labels: LabelVolume, organ: Organ, box: LabelBox,
@@ -133,7 +142,7 @@ enum SurfaceNets {
                     }
                 }
                 if f > 1 {
-                    let thresh = UInt8(max(1, (f * f * f) / 2))
+                    let thresh = isThinShell(box) ? 1 : UInt8(max(1, (f * f * f) / 2))
                     for i in 0..<m.count { m[i] = m[i] >= thresh ? 1 : 0 }
                 } else {
                     for i in 0..<m.count where m[i] > 0 { m[i] = 1 }

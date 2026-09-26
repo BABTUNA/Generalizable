@@ -3,9 +3,13 @@
 // Design follows NiiVue's volume renderer (github.com/niivue/niivue,
 // packages/niivue/src/shader-srcs.ts kRenderFunc/kRenderTail; niivue.ts uploads an 8-bit
 // copy of the volume scaled from cal_min/cal_max): one-voxel steps, jitter, empty-space fast
-// pass, clip-plane sample range, early termination. The transfer function is shaped after
-// 3D Slicer's CT-AAA preset (github.com/Slicer/Slicer,
-// Modules/Loadable/VolumeRendering/Resources/presets.xml) with a translucent soft-tissue ramp.
+// pass, clip-plane sample range, early termination.
+//
+// Transfer functions: the point lists of 3D Slicer's volume-rendering presets, copied verbatim
+// from github.com/Slicer/Slicer, Modules/Loadable/VolumeRendering/Resources/presets.xml
+// (`scalarOpacity` / `colorTransfer` of CT-AAA, CT-Bone, CT-Soft-Tissue). Picked per case:
+// head CT (skull label present) → CT-Bone; everything else → CT-AAA (contrast vessels + bone)
+// plus a faint soft-tissue ramp (stated deviation: without it the abdomen is just skeleton).
 //
 // Camera: perspective, orbiting a target in millimetre RAS space centred on the volume.
 // Default: camera anterior of the patient looking posterior, superior up, which puts the
@@ -42,6 +46,9 @@ final class VolumeRenderer: NSObject, MTKViewDelegate {
     private let tf: MTLTexture
     let geometry: VolumeGeometry
 
+    enum Preset: String { case ctAAA = "CT-AAA", ctBone = "CT-Bone", ctSoftTissue = "CT-Soft-Tissue" }
+    let preset: Preset
+
     var params = VolumeRenderParams()
     var interacting = false
 
@@ -74,7 +81,9 @@ final class VolumeRenderer: NSObject, MTKViewDelegate {
             labelTex = dev.makeTexture(descriptor: d)!
             hasLabels = false
         }
-        tf = Self.makeTransferFunction(dev)
+        let isHead = loaded.info.id.hasPrefix("CQ500")
+        preset = isHead ? .ctBone : .ctAAA
+        tf = Self.makeTransferFunction(dev, preset: preset)
         super.init()
         resetCamera()
     }
@@ -154,6 +163,9 @@ final class VolumeRenderer: NSObject, MTKViewDelegate {
             clip = SIMD4(nm, -simd_dot(nm, cursorMM))
             clipOn = 1
         }
+        // Cut-face window: head → subdural (W200/L80, shows thin extra-axial blood), else the viewer's.
+        let cw = preset == .ctBone ? WindowLevel.subdural : params.window
+        let capLo = (cw.low - Self.huMin) / Self.huRange, capHi = (cw.high - Self.huMin) / Self.huRange
         let lo = (params.window.low - Self.huMin) / Self.huRange
         let hi = (params.window.high - Self.huMin) / Self.huRange
         return VolumeUniforms(
@@ -165,9 +177,9 @@ final class VolumeRenderer: NSObject, MTKViewDelegate {
             dims: SIMD4(SIMD3<Float>(g.dims), 1.0),
             spacing: SIMD4(g.spacing, params.mode == .mip ? 1 : 0),
             clip: clip,
-            cursorMM: SIMD4(cursorMM, 0),
+            cursorMM: SIMD4(cursorMM, capLo),
             window: SIMD4(lo, hi, (params.tint && hasLabels) ? 1 : 0, params.showPlanes ? 1 : 0),
-            misc: SIMD4(clipOn, 0, Float(params.selected), 0.07),
+            misc: SIMD4(clipOn, capHi, Float(params.selected), 0.07),
             organMask: SIMD4(params.organMask.x, params.organMask.y, 0, 0))
     }
 
@@ -196,35 +208,56 @@ final class VolumeRenderer: NSObject, MTKViewDelegate {
         return dst
     }
 
+    /// Slicer preset point lists: opacity (HU, a) and colour (HU, r, g, b).
+    private static func slicerPoints(_ p: Preset) -> (op: [(Float, Float)], col: [(Float, Float, Float, Float)]) {
+        switch p {
+        case .ctAAA:
+            return ([(-3024, 0), (143.556, 0), (166.222, 0.686275), (214.389, 0.696078), (419.736, 0.833333), (3071, 0.803922)],
+                    [(-3024, 0, 0, 0), (143.556, 0.615686, 0.356863, 0.184314), (166.222, 0.882353, 0.603922, 0.290196),
+                     (214.389, 1, 1, 1), (419.736, 1, 0.937033, 0.954531), (3071, 0.827451, 0.658824, 1)])
+        case .ctBone:
+            return ([(-3024, 0), (-16.4458, 0), (641.385, 0.715686), (3071, 0.705882)],
+                    [(-3024, 0, 0, 0), (-16.4458, 0.729412, 0.254902, 0.301961), (641.385, 0.905882, 0.815686, 0.552941),
+                     (3071, 1, 1, 1)])
+        case .ctSoftTissue:
+            return ([(-2048, 0), (-167.01, 0), (-160, 1), (240, 1), (3661, 1)],
+                    [(-2048, 0, 0, 0), (-167.01, 0, 0, 0), (-160, 0.0556356, 0.0556356, 0.0556356), (240, 1, 1, 1), (3661, 1, 1, 1)])
+        }
+    }
+
+    private static func interp<T>(_ pts: [(Float, T)], _ x: Float, _ mix: (T, T, Float) -> T) -> T {
+        if x <= pts[0].0 { return pts[0].1 }
+        for j in 0..<(pts.count - 1) where x <= pts[j + 1].0 {
+            let f = (x - pts[j].0) / max(pts[j + 1].0 - pts[j].0, 1e-6)
+            return mix(pts[j].1, pts[j + 1].1, f)
+        }
+        return pts.last!.1
+    }
+
     /// 1D RGBA transfer function over the same normalised HU axis as the 8-bit volume.
-    /// Alpha is opacity per 1 mm (corrected per step in the shader).
-    private static func makeTransferFunction(_ dev: MTLDevice) -> MTLTexture {
-        // (HU, r, g, b, a)
-        let pts: [(Float, Float, Float, Float, Float)] = [
-            (-1000, 0, 0, 0, 0),
-            (-200, 0.55, 0.35, 0.25, 0),
-            (-80, 0.85, 0.66, 0.46, 0.0015),   // fat, barely there
-            (20, 0.78, 0.45, 0.38, 0.003),     // soft tissue, translucent
-            (100, 0.85, 0.48, 0.42, 0.006),
-            (135, 0.80, 0.25, 0.20, 0.012),
-            (165, 0.72, 0.04, 0.03, 0.30),     // contrast vessels: red (CT-AAA 143→166 ramp)
-            (230, 0.92, 0.22, 0.16, 0.55),
-            (320, 0.97, 0.80, 0.64, 0.70),     // CT-AAA 214 (0.973, 0.812, 0.639)
-            (450, 0.93, 0.92, 0.96, 0.85),     // CT-AAA 419 (0.909, 0.909, 1)
-            (1500, 1, 1, 1, 0.90),
-        ]
+    /// Alpha is opacity per 1 mm (corrected per step in the shader), as Slicer's scalar
+    /// opacity is per unit distance.
+    private static func makeTransferFunction(_ dev: MTLDevice, preset: Preset) -> MTLTexture {
+        let sp = slicerPoints(preset)
+        let op = sp.op
+        let col = sp.col.map { ($0.0, SIMD3<Float>($0.1, $0.2, $0.3)) }
+        // Faint soft-tissue ramp for the abdomen (see header).
+        let soft: [(Float, Float)] = preset == .ctAAA ? [(-200, 0), (-80, 0.0015), (20, 0.003), (100, 0.006), (143, 0.01)] : []
+        let softCol = SIMD3<Float>(0.80, 0.52, 0.42)
+        func sample(_ hu: Float) -> SIMD4<Float> {
+            var a = interp(op, hu) { $0 + ($1 - $0) * $2 }
+            var c = interp(col, hu) { simd_mix($0, $1, SIMD3(repeating: $2)) }
+            if !soft.isEmpty && hu > -200 && hu < 143.556 {
+                let sa = interp(soft, hu) { $0 + ($1 - $0) * $2 }
+                if sa > a { a = sa; c = hu < 143.556 ? softCol : c }
+            }
+            return SIMD4(c, a)
+        }
         let n = 1024
         var data = [Float16](repeating: 0, count: n * 4)
         for i in 0..<n {
             let hu = huMin + huRange * Float(i) / Float(n - 1)
-            var c = SIMD4<Float>(pts.last!.1, pts.last!.2, pts.last!.3, pts.last!.4)
-            if hu <= pts[0].0 { c = SIMD4(pts[0].1, pts[0].2, pts[0].3, pts[0].4) }
-            for j in 0..<(pts.count - 1) where hu >= pts[j].0 && hu <= pts[j + 1].0 {
-                let a = pts[j], b = pts[j + 1]
-                let f = (hu - a.0) / (b.0 - a.0)
-                c = simd_mix(SIMD4(a.1, a.2, a.3, a.4), SIMD4(b.1, b.2, b.3, b.4), SIMD4(repeating: f))
-                break
-            }
+            let c = sample(hu)
             for k in 0..<4 { data[i * 4 + k] = Float16(c[k]) }
         }
         let d = MTLTextureDescriptor()

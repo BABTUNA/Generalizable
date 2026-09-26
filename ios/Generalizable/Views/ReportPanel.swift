@@ -61,6 +61,8 @@ struct ReportPanel: View {
                 }
             }
 
+            if let ai = state.loaded.ai { aiSection(ai) }
+
             Section("Findings") {
                 if r.lesions.isEmpty {
                     Label("No segmented lesions", systemImage: "checkmark.circle")
@@ -90,6 +92,53 @@ struct ReportPanel: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    // MARK: AI findings (model output bundled with the case; see AI/AILoader.swift)
+
+    @ViewBuilder private func aiSection(_ ai: AIResult) -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles").foregroundStyle(.orange)
+                    Text(ai.headlineClass.capitalized).font(.subheadline.weight(.semibold))
+                    if let p = ai.headlineProbability {
+                        Text(String(format: "%.1f%%", p * 100)).font(.subheadline.monospacedDigit())
+                    }
+                    Spacer()
+                    Button { AICard.jumpToPeak(state: state, ai: ai) } label: {
+                        Label("Jump to peak", systemImage: "scope").font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
+                    .disabled(ai.peakSlice == nil)
+                }
+                if let pk = ai.peakSlice {
+                    Text("Peak on axial slice \(pk + 1) of \(state.sliceCount(for: .axial)).").font(.callout)
+                }
+                if let d = ai.diceVsExpert {
+                    Text(String(format: "Heatmap agrees with the expert mask: Dice %.2f", d)).font(.callout)
+                }
+                let others = ai.series.filter { $0.name.lowercased() != ai.headlineClass.lowercased() }
+                    .sorted { $0.probability > $1.probability }
+                if !others.isEmpty {
+                    Text(others.map { "\($0.name.capitalized) \(String(format: "%.1f%%", $0.probability * 100))" }
+                        .joined(separator: " · "))
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+                Toggle("Show heatmap", isOn: $state.showAI).font(.callout)
+                Text(aiModelLine(ai)).font(.caption2).foregroundStyle(.secondary)
+                Text(ai.disclaimer).font(.caption2).foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+        } header: { Text("AI findings") }
+    }
+
+    private func aiModelLine(_ ai: AIResult) -> String {
+        var parts = [ai.model]
+        if !ai.license.isEmpty { parts.append(ai.license) }
+        let m = state.loaded.info.metadata
+        if let r = m["aiRuntime"] { parts.append(r + (m["aiDevice"].map { " on \($0)" } ?? "")) }
+        return parts.joined(separator: " · ")
     }
 
     private var metaLine: String {

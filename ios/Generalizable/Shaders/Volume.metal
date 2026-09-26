@@ -30,9 +30,9 @@ struct VolumeUniforms {
     float4 dims;       // xyz voxels, w = reference step mm for opacity
     float4 spacing;    // xyz mm, w = mode (0 DVR, 1 MIP)
     float4 clip;       // xyz unit normal (mm space), w = plane offset d: keep dot(n,p)+d <= 0
-    float4 cursorMM;   // xyz
+    float4 cursorMM;   // xyz, w = cut-face window lo (normalised)
     float4 window;     // x lo (normalised), y hi, z label tint on, w show planes
-    float4 misc;       // x clip on, y unused, z selected organ, w organ alpha
+    float4 misc;       // x clip on, y cut-face window hi, z selected organ, w organ alpha
     uint4 organMask;   // bits 0..63 of visible organ ids
 };
 
@@ -165,6 +165,31 @@ fragment float4 volumeFragment(VolumeVOut in [[stage_in]],
     }
 
     // ---------------- DVR ----------------
+    // Clip cap: where the ray enters through the cut and hits tissue, paint the CT slice on
+    // the plane (windowed greyscale + label tint) with a cyan rim at the tissue/air border,
+    // so the hinge cut reads as a solid cross-section (like Slicer's slice-in-3D view).
+    if (cutFace) {
+        float3 tc = (eye + dir * (tNear + 0.05)) * inv2h + 0.5;
+        float v = ct.sample(lin, tc).r;
+        float hu = kVolHUMin + v * kVolHURange;
+        if (hu > -350.0) {
+            float g = saturate((v - U.cursorMM.w) / max(U.misc.y - U.cursorMM.w, 1e-5));
+            float3 col = float3(g);
+            if (tint) {
+                uint lab = volLabelAt(labels, tc, dims);
+                if (volOrganVisible(lab, U.organMask)) {
+                    float3 oc = organLUT.read(lab).rgb;
+                    bool lesion = lab == 39u || lab == 22u || (lab >= 33u && lab <= 35u);
+                    col = lesion ? mix(col, oc * 1.2, 0.85) : mix(col, oc * max(g, 0.4), lab == selected ? 0.6 : 0.3);
+                }
+            }
+            float edge = 1.0 - smoothstep(-350.0, -120.0, hu);
+            col = mix(col, float3(0.45, 0.95, 1.0), edge * 0.9);
+            float4 acc0 = float4(col, 1.0);
+            for (int i = 0; i < nl; i++) if (lt[i] <= tNear + 0.1) acc0.rgb = mix(acc0.rgb, lc[i].rgb, lc[i].a);
+            return acc0;
+        }
+    }
     float organAlpha = U.misc.w;
     float ref = U.dims.w;
     float t = tNear;
