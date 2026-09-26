@@ -35,3 +35,14 @@
 - **Body CT bundle:** built locally (39 MB CT, 20 MB labels). It gets committed after the L4 label cleanup.
 - **Contract change:** `OverviewView` is a 3D peel raymarch (see `docs/contracts/render-interface.md`).
 - **Bitrig:** registration is blocked by Bitrig's permission rules on repository bootstrap. A non-destructive merge (`--allow-unrelated-histories -X theirs`) was sent to it.
+
+## Progress: 2026-09-26 ~20:35 UTC (update 3)
+
+- **All four cases are committed in `App/Cases`:**
+  - `head`: CQ500-CT-243 with a subdural hemorrhage finding.
+  - `body`: Visible Human, with cleaned labels plus Intestines, Pancreas and Bladder.
+  - `sun` and `circuit`.
+  - `data/verify.py` passes on every one.
+- **Raw data, NIfTI volumes, TotalSegmentator masks and model weights** are on the orphan branch `data/assets`, chunked to under 95 MB. Restore with `unpack.sh`.
+- **Orientation fix (7ee77ea):** `CutPlane` now uses the radiological convention. RAS +x is the patient's RIGHT; A4 is corrected.
+- **Next:** merge the L3c render and L3b UI branches, swap the stubs, and build and screenshot with `scripts/build_sim.sh`. Bitrig then fetches `agent/bitrig/l3c-duo` from GitHub by URL (see `coordination/inbox/bitrig-l3c-duo.md`).
