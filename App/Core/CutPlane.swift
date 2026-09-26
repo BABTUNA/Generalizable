@@ -91,6 +91,17 @@ struct CutPlane: Equatable {
 // MARK: - Hinge mapping (A2)
 
 enum HingeMapping {
+    /// A12 (Scan mode): opening and closing the Duo scrubs through the CT slices.
+    /// The opening angle in degrees (0 = closed, 180 = flat) maps linearly to a 0...1 position
+    /// through the volume: closed = the lowest (inferior) slice, flat = the top (superior) slice.
+    /// Angles below `closedDeg` hold at 0, so the first bit of lid travel is a dead zone.
+    static func sliceFraction(forHingeAngle a: Double, closedDeg: Double = 10, flatDeg: Double = 180) -> Double {
+        min(max((a - closedDeg) / (flatDeg - closedDeg), 0), 1)
+    }
+    static func hingeAngle(forSliceFraction f: Double, closedDeg: Double = 10, flatDeg: Double = 180) -> Double {
+        closedDeg + min(max(f, 0), 1) * (flatDeg - closedDeg)
+    }
+
     /// tilt = 180 - hingeAngle, with the hinge angle clamped to 90...180 first
     /// (below 90 the tilt is held at 90, per A2).
     static func tilt(forHingeAngle a: Double) -> Double {

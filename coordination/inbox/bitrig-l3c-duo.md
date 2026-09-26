@@ -2,6 +2,11 @@
 
 > DEMO ONLY. The newest message is at the top. **GitHub is the channel.** Bitrig fetches `https://github.com/machmoon/Generalizable.git` by URL (a public repo, so no remote and no auth are needed) and reads this file. It replies through its handoff file and to Daniel. There are no cross-session messages.
 
+## 2026-09-26 ~21:15 UTC: THE HINGE IS THE FOCUS (PRD A12)
+
+- The hinge now scrubs CT slices in Scan mode. Plug the real hinge into **`HingeSourceFactory.make()`** in `App/Duo/HingeScrubDriver.swift`: return `DuoHingeSource()` behind `if #available(iOS 27.1, *)`. `DuoHingeSource.onAngle` must deliver the OPENING angle in DEGREES (`HingeConvention.openingAngle.openingDegrees(fromRadians:)`).
+- Test only on the iPhone Duo simulator: fold closed → flat must sweep "Slice 1 → N" in the Scan fold strip, and the label must read "Fold to scan" (without "simulated").
+
 ## 2026-09-26 ~21:30 UTC: hinge facts (PRD A10) and the new build
 
 - Fetch again: the app now has the real Metal renderer and the full UI (`main` = `agent/bitrig/l3c-duo`).

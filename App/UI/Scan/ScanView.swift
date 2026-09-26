@@ -17,6 +17,8 @@ struct ScanView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @State private var showOrgans = false
+    @State private var hinge = HingeScrubDriver()
+    @State private var foldDegrees: Double = 180
 
     private enum Pane: String, CaseIterable, Identifiable {
         case axial = "Axial", sagittal = "Sagittal", coronal = "Coronal", threeD = "3D"
@@ -41,8 +43,59 @@ struct ScanView: View {
         model.cut.pivotMM = p
     }
 
+    // MARK: - Hinge scrub (PRD A12)
+
+    /// z range of the volume in mm (RAS: +z = head).
+    private var zRange: ClosedRange<Float> {
+        let m = model.bundle.meta
+        let z0 = Float(m.originMM[2]), dz = Float(m.spacingMM[2]) * Float(max(m.dims[2] - 1, 1))
+        return min(z0, z0 + dz)...max(z0, z0 + dz)
+    }
+    private var sliceCount: Int { model.bundle.meta.dims[2] }
+    private var currentSlice: Int {
+        let f = (model.cut.pivotMM.z - zRange.lowerBound) / max(zRange.upperBound - zRange.lowerBound, 1)
+        return min(max(Int((f * Float(sliceCount - 1)).rounded()), 0), sliceCount - 1) + 1
+    }
+    private func scrub(toFraction f: Double) {
+        var p = model.cut.pivotMM
+        p.z = zRange.lowerBound + Float(f) * (zRange.upperBound - zRange.lowerBound)
+        model.cut.pivotMM = p
+    }
+
+    private var foldStrip: some View {
+        HStack(spacing: 12) {
+            FoldGlyph(openingDegrees: foldDegrees)
+                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                .frame(width: 44, height: 30)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(hinge.isHingeAvailable ? "Fold to scan" : "Fold to scan · simulated hinge")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text("Slice \(currentSlice) / \(sliceCount)")
+                        .font(.subheadline.monospacedDigit())
+                }
+                Slider(value: Binding(get: { foldDegrees },
+                                      set: { foldDegrees = $0; hinge.apply(openingDegrees: $0) }),
+                       in: 0...180)
+                    .disabled(hinge.isHingeAvailable)
+                    .accessibilityLabel("Hinge angle")
+                    .accessibilityValue("\(Int(foldDegrees)) degrees, slice \(currentSlice) of \(sliceCount)")
+                Text("Closed = bottom slice · open flat = top slice")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 8)
+        .padding(.top, 6)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            foldStrip
             if isCompactPortrait {
                 Picker("Pane", selection: $singlePane) {
                     ForEach(Pane.allCases) { Text($0.rawValue).tag($0) }
@@ -62,6 +115,21 @@ struct ScanView: View {
                     .padding(.bottom, 8)
             }
         }
+        .onAppear {
+            hinge.bind { f in scrub(toFraction: f) }
+            hinge.start()
+            // Start the simulated fold where the current crosshair already is.
+            let f = Double((model.cut.pivotMM.z - zRange.lowerBound) / max(zRange.upperBound - zRange.lowerBound, 1))
+            foldDegrees = HingeMapping.hingeAngle(forSliceFraction: f)
+            // `-fold <deg>`: scripted screenshots of the hinge scrub.
+            let args = CommandLine.arguments
+            if let i = args.firstIndex(of: "-fold"), i + 1 < args.count, let d = Double(args[i + 1]) {
+                foldDegrees = d
+                hinge.apply(openingDegrees: d)
+            }
+        }
+        .onDisappear { hinge.stop() }
+        .onChange(of: hinge.openingDegrees) { _, d in if hinge.isHingeAvailable { foldDegrees = d } }
     }
 
     // MARK: - Layout
@@ -190,5 +258,21 @@ struct ScanView: View {
                 }
             }
         }
+    }
+}
+
+/// Side view of the Duo: the lower half stays flat, and the upper half opens by `openingDegrees`.
+struct FoldGlyph: Shape {
+    var openingDegrees: Double
+    var animatableData: Double { get { openingDegrees } set { openingDegrees = newValue } }
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let hinge = CGPoint(x: r.midX, y: r.maxY - 2)
+        let len = min(r.width / 2, r.height) - 2
+        p.move(to: CGPoint(x: hinge.x - len, y: hinge.y))
+        p.addLine(to: hinge)
+        let a = (180 - openingDegrees) * .pi / 180          // upper half's elevation above the table
+        p.addLine(to: CGPoint(x: hinge.x + len * cos(a), y: hinge.y - len * sin(a)))
+        return p
     }
 }

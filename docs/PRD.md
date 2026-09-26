@@ -271,3 +271,17 @@ Sources: [bleepingswift: onHingeChange](https://bleepingswift.com/blog/onhingech
   - The model output never includes diagnosis, prognosis or treatment.
 - **Measured result:** told the answer, the models echo it. Blind, both models **missed the subdural bleed** on the full slices, even with a subdural window. With the region close-up, Qwen2.5-VL-72B reported "a variation in density compared to surrounding brain tissue". The shipped head result is that blind + ROI answer. For the body, Qwen3-VL-235B correctly identified the lungs, heart, liver, spine, ribs and diaphragm.
 - **Not used:** MUSK (a pathology-slide model; manually gated; CC BY-NC-ND), MedGemma (no hosted provider), and prognosis output of any kind (out of scope per the PRD).
+
+### A12: The hinge scrubs through CT slices in Scan mode (Adopted, 2026-09-26; Daniel: "the scan section should implement the hinge function. opening and closing the hinge should basically go through the different layers of the CT scan")
+
+- **Scan (MPR) is the primary view.** In it, the Duo's opening angle picks the axial slice via `HingeMapping.sliceFraction(forHingeAngle:)`:
+  - closed (≤ 10°) = the bottom (inferior) slice
+  - flat (180°) = the top (superior) slice
+  - linear in between
+
+  The crosshair's z follows the slice, so the sagittal and coronal lines move with it. This replaces A2's hinge → tilt mapping in Scan mode. Explore keeps the A2 mapping.
+- **Code:**
+  - `App/Duo/HingeScrubDriver.swift` holds the smoothing and the mapping.
+  - `HingeSourceFactory.make()` is the **single plug-in point** for the real `DuoHingeSource` (iOS 27.1, PRD A10: the angle is in radians, so convert it to opening degrees).
+  - Until the source exists, the "Fold to scan · simulated hinge" control drives the same value. The label drops "simulated" once a real hinge reading arrives.
+- **Verified** on the simulator with `-scan -fold 60` → slice 64/216 (skull base) and `-fold 150` → slice 178/216 (upper brain).
