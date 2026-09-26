@@ -19,8 +19,12 @@ struct ObliqueSliceView: View {
     var findings: [CaseFinding] = []
 
     private var tiltDegrees: Int { Int(tilt.rounded()) }
-    private var viewName: String {
-        tiltDegrees < 2 ? "AXIAL SLICE" : abs(tiltDegrees - 90) < 2 ? "FRONT VIEW (CORONAL)" : "TILTED SLICE"
+    private var hingeDegrees: Int { Int(hinge.rounded()) }
+    /// Plain-language caption: what this pane is and why it looks the way it does, one line,
+    /// no jargon (no "axial/coronal/tilt°" — the fold angle is the number that matters here).
+    private var caption: String {
+        tiltDegrees < 2 ? "Cross-section · flat (matches the other half)"
+                        : "Cross-section · follows the fold (\(hingeDegrees)°)"
     }
 
     var body: some View {
@@ -37,10 +41,7 @@ struct ObliqueSliceView: View {
             GeometryReader { geo in rings(in: geo.size) }.allowsHitTesting(false)
         }
         .background(Color.black)
-        .overlay(alignment: .topLeading) { LensTag(text: "\(viewName)  \(tiltDegrees)°").padding(10) }
-        .overlay(alignment: .bottomLeading) {
-            LensTag(text: "hinge · \(Int(hinge.rounded()))°", color: Color(red: 0.27, green: 0.81, blue: 0.88)).padding(10)
-        }
+        .overlay(alignment: .topLeading) { LensTag(text: caption).padding(10) }
         .overlay(alignment: .leading) { edge("R") }
         .overlay(alignment: .trailing) { edge("L") }
     }
@@ -61,7 +62,8 @@ struct ObliqueSliceView: View {
                 if abs(d) < r {
                     LensRing(center: CGPoint(x: size.width / 2 + CGFloat(simd_dot(q, right)) * ptsPerMM,
                                              y: size.height / 2 - CGFloat(simd_dot(q, up)) * ptsPerMM),
-                             radius: CGFloat((r * r - d * d).squareRoot()) * ptsPerMM, number: k + 1, label: f.title)
+                             radius: CGFloat((r * r - d * d).squareRoot()) * ptsPerMM, number: k + 1, label: f.title,
+                             containerWidth: size.width)
                 }
             }
         }
