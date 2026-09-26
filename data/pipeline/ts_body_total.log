@@ -1,0 +1,19 @@
+
+If you use this tool please cite: https://pubs.rsna.org/doi/10.1148/ryai.230024
+
+TotalSegmentator sends anonymous usage statistics. If you want to disable it check the documentation.
+Using 'fast' option: resampling to lower resolution (3mm)
+Downloading model for Task 297 ...
+Downloading:   0%|          | 0.00/135M [00:00<?, ?B/s]Downloading:   6%|▌         | 8.39M/135M [00:00<00:02, 49.1MB/s]Downloading:  10%|█         | 13.9M/135M [00:00<00:02, 51.3MB/s]Downloading:  14%|█▍        | 19.1M/135M [00:00<00:02, 51.3MB/s]Downloading:  18%|█▊        | 24.4M/135M [00:00<00:02, 41.5MB/s]Downloading:  23%|██▎       | 31.6M/135M [00:00<00:02, 44.4MB/s]Downloading:  32%|███▏      | 43.0M/135M [00:00<00:01, 61.4MB/s]Downloading:  39%|███▉      | 52.6M/135M [00:00<00:01, 65.7MB/s]Downloading:  47%|████▋     | 63.0M/135M [00:01<00:01, 66.1MB/s]Downloading:  52%|█████▏    | 69.9M/135M [00:01<00:01, 58.5MB/s]Downloading:  56%|█████▌    | 76.2M/135M [00:01<00:00, 59.4MB/s]Downloading:  61%|██████    | 82.3M/135M [00:01<00:00, 55.0MB/s]Downloading:  65%|██████▍   | 87.9M/135M [00:01<00:00, 49.9MB/s]Downloading:  70%|██████▉   | 94.5M/135M [00:01<00:00, 51.8MB/s]Downloading:  76%|███████▌  | 103M/135M [00:01<00:00, 59.3MB/s] Downloading:  80%|████████  | 109M/135M [00:01<00:00, 52.3MB/s]Downloading:  85%|████████▍ | 114M/135M [00:02<00:00, 50.7MB/s]Downloading:  88%|████████▊ | 120M/135M [00:02<00:00, 42.7MB/s]Downloading:  93%|█████████▎| 126M/135M [00:02<00:00, 44.6MB/s]Downloading:  98%|█████████▊| 133M/135M [00:02<00:00, 46.0MB/s]Downloading: 100%|██████████| 135M/135M [00:02<00:00, 52.5MB/s]
+/Users/dqi26/Generalizable/data/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1643: FutureWarning: `torch.jit.interface` is deprecated. Please use `torch.compile` instead.
+  warnings.warn(
+  0%|          | 0/16 [00:00<?, ?it/s]  6%|▋         | 1/16 [00:03<00:45,  3.06s/it] 12%|█▎        | 2/16 [00:03<00:19,  1.41s/it] 19%|█▉        | 3/16 [00:03<00:11,  1.13it/s] 25%|██▌       | 4/16 [00:03<00:07,  1.57it/s] 31%|███▏      | 5/16 [00:04<00:06,  1.68it/s] 38%|███▊      | 6/16 [00:04<00:05,  1.78it/s] 44%|████▍     | 7/16 [00:05<00:04,  1.85it/s] 50%|█████     | 8/16 [00:05<00:04,  1.96it/s] 56%|█████▋    | 9/16 [00:06<00:03,  1.85it/s] 62%|██████▎   | 10/16 [00:06<00:03,  1.90it/s] 69%|██████▉   | 11/16 [00:07<00:02,  1.92it/s] 75%|███████▌  | 12/16 [00:07<00:02,  1.92it/s] 81%|████████▏ | 13/16 [00:08<00:01,  1.85it/s] 88%|████████▊ | 14/16 [00:08<00:01,  1.93it/s] 94%|█████████▍| 15/16 [00:09<00:00,  1.93it/s]100%|██████████| 16/16 [00:10<00:00,  1.90it/s]100%|██████████| 16/16 [00:10<00:00,  1.59it/s]
+Download finished. Extracting...
+Resampling...
+  Resampled in 0.80s
+Predicting...
+  Predicted in 22.02s
+Resampling...
+  Resampled in 2.10s
+Saving segmentations...
+  Saved in 29.05s

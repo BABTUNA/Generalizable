@@ -1,0 +1,15 @@
+/Users/dqi26/Generalizable/data/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1643: FutureWarning: `torch.jit.interface` is deprecated. Please use `torch.compile` instead.
+  warnings.warn(
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:03<00:00,  3.05s/it]100%|██████████| 1/1 [00:03<00:00,  3.05s/it]
+
+If you use this tool please cite: https://pubs.rsna.org/doi/10.1148/ryai.230024
+
+Using 'fast' option: resampling to lower resolution (3mm)
+Resampling...
+  Resampled in 0.04s
+Predicting...
+  Predicted in 11.71s
+Resampling...
+  Resampled in 0.43s
+Saving segmentations...
+  Saved in 12.43s

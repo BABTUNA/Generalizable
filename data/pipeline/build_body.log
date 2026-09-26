@@ -1,0 +1,12 @@
+native shape (512, 512, 956) spacing [0.89843798 0.89843798 1.        ] origin [-231.1018219 -168.1018219 -565.       ]
+bone parts: 62 lung parts: 5 ts_muscle parts: 10
+skin found: True body mask found: True
+mask voxel counts: skin 2746351 fat 25672071 muscle 19087341 bone 5753921 brain 2131362
+layers present after painting: [(1, 'Skin'), (2, 'Fat'), (3, 'Muscle'), (4, 'Bone'), (5, 'Lungs'), (6, 'Heart'), (7, 'Liver'), (8, 'Spleen'), (9, 'Kidneys'), (10, 'Stomach'), (11, 'Aorta'), (12, 'Brain')]
+target_spacing [2. 2. 2.] -> out_dims (239, 169, 487) out_origin [-239.1018219   -88.05490017 -573.        ]
+at spacing [2. 2. 2.]: ct.raw would be 39.3 MB
+wrote data/out/body: dims=(239, 169, 487) ct.raw=39.3MB labels.raw=19.7MB
+SKIN_SOURCE: TotalSegmentator body task
+FAT_SOURCE: HU fallback (-190..-30 HU inside body, not skin/bone/organ) — tissue_types task needs a license, skipped per brief
+MUSCLE_SOURCE: TotalSegmentator total task (autochthon/iliopsoas/gluteus) UNION HU fallback (30..150 HU, not bone/organ) for the rest
+DONE build_body_bundle

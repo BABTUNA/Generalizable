@@ -1,0 +1,19 @@
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  2.76it/s]100%|██████████| 1/1 [00:00<00:00,  2.76it/s]
+
+If you use this tool please cite: https://pubs.rsna.org/doi/10.1148/ryai.230024
+
+Using 'fast' option: resampling to lower resolution (6mm)
+Resampling...
+  Resampled in 0.01s
+Predicting...
+  Predicted in 7.47s
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 855.46it/s]
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 1267.54it/s]
+Resampling...
+  Resampled in 0.61s
+Saving segmentations...
+Creating body_trunc.nii.gz
+Creating body_extremities.nii.gz
+  Saved in 5.55s
+Creating body.nii.gz
+Creating skin.nii.gz

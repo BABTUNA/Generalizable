@@ -1,0 +1,7 @@
+native shape (513, 510, 294) spacing [0.4824219 0.4824219 0.6278196] origin [-123.01763916 -129.65167236  -56.18172836]
+layers present: [(1, 'Skin'), (2, 'Skull'), (3, 'Brain'), (4, 'Bleed')]
+out_dims (225, 256, 216) out_origin [ -79.9051363  -104.87120188  -56.24263037]
+ct.raw would be 24.9 MB at spacing [0.8 0.8 0.8]
+finding: {'id': 1, 'label_id': 4, 'title': 'Subdural hemorrhage', 'center_mm': [-35.1051362991333, -3.271201884746546, 67.75736962556839], 'radius_mm': 25.4, 'explanation': "A subdural hemorrhage (bleeding between the brain and the skull), voxel-masked by Seg-CQ500. CQ500's three-reader consensus for this case (CQ500-CT-243) rates subdural hemorrhage at 0.93 and associated mass effect / midline shift at 0.99."}
+wrote data/out/brain: dims=(225, 256, 216) ct.raw=24.9MB labels.raw=12.4MB
+DONE build_brain_bundle
