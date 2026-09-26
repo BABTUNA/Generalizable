@@ -4,6 +4,7 @@ struct SliceCanvasView: View {
   var session: ExplorerSession
   var isThumbnail = false
   var isReference = false
+  var showsAnnotations = true
 
   private var displayedFrame: ExplorerSliceFrame? { isReference ? session.referenceFrame : session.frame }
   private var otherFrame: ExplorerSliceFrame? { isReference ? session.frame : session.referenceFrame }
@@ -37,7 +38,7 @@ struct SliceCanvasView: View {
         } else {
           ProgressView().tint(ExplorerPalette.mint)
         }
-        if !isThumbnail, let frame = displayedFrame {
+        if !isThumbnail, showsAnnotations, let frame = displayedFrame {
           VStack {
             HStack {
               Text(frame.subject == .patient ? "R" : "X−")

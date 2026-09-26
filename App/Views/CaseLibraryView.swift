@@ -3,7 +3,9 @@ import UniformTypeIdentifiers
 
 /// Home: the sample case and the patient's imported reports.
 struct CaseLibraryView: View {
+  var showsDoneButton = false
   @Environment(CaseLibrary.self) private var library
+  @Environment(\.dismiss) private var dismiss
   @State private var path: [ScanCase] = []
   @State private var isPickingFile = false
   @State private var isShowingSettings = false
@@ -80,6 +82,11 @@ struct CaseLibraryView: View {
         ViewerView(scanCase: scanCase)
       }
       .toolbar {
+        if showsDoneButton {
+          ToolbarItem(placement: .confirmationAction) {
+            Button("Done", systemImage: "checkmark") { dismiss() }
+          }
+        }
         ToolbarItem(placement: .primaryAction) {
           Button("Import Report", systemImage: "plus") {
             isPickingFile = true

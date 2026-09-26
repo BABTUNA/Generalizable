@@ -18,7 +18,10 @@ struct VolumeSceneView: UIViewRepresentable {
   func makeCoordinator() -> Coordinator { Coordinator() }
 
   func makeUIView(context: Context) -> SCNView {
-    let view = SCNView(frame: .zero)
+    let view = ViewportFittingSceneView(frame: .zero)
+    view.onSizeChange = { [weak coordinator = context.coordinator] size in
+      coordinator?.updateViewportSize(size)
+    }
     view.backgroundColor = .clear
     view.isOpaque = false
     view.antialiasingMode = .multisampling4X
@@ -51,6 +54,7 @@ struct VolumeSceneView: UIViewRepresentable {
     private var currentSubject = ""
     private var onSelectAnchor: ((SIMD3<Float>) -> Void)?
     private weak var view: SCNView?
+    private var fittedCameraScale = 350.0
 
     private let cyan = UIColor(red: 0.34, green: 0.87, blue: 1, alpha: 1)
     private let blue = UIColor(red: 0.16, green: 0.54, blue: 0.95, alpha: 1)
@@ -66,6 +70,7 @@ struct VolumeSceneView: UIViewRepresentable {
 
       let camera = SCNCamera()
       camera.usesOrthographicProjection = true
+      camera.projectionDirection = .vertical
       camera.orthographicScale = 350
       camera.zNear = 1
       camera.zFar = 4000
@@ -135,8 +140,28 @@ struct VolumeSceneView: UIViewRepresentable {
       view?.setNeedsDisplay()
     }
 
+    func updateViewportSize(_ size: CGSize) {
+      guard size.width > 0, size.height > 0 else { return }
+      let newScale = Self.cameraScale(for: size)
+      // Preserve orbit and the person's relative zoom while the available pane resizes.
+      // Ordinary SwiftUI updates never change the camera's scale.
+      let camera = view?.pointOfView?.camera ?? cameraNode.camera
+      if let camera {
+        camera.orthographicScale *= newScale / fittedCameraScale
+      }
+      fittedCameraScale = newScale
+    }
+
+    private static func cameraScale(for size: CGSize) -> Double {
+      guard size.width > 0, size.height > 0 else { return 350 }
+      let aspectRatio = Double(size.width / size.height)
+      // A 440 mm horizontal field includes the 330 mm anatomy and reference rings.
+      return max(350, 220 / aspectRatio)
+    }
+
     @objc private func resetCamera() {
-      cameraNode.camera?.orthographicScale = 350
+      fittedCameraScale = Self.cameraScale(for: view?.bounds.size ?? .zero)
+      cameraNode.camera?.orthographicScale = fittedCameraScale
       cameraNode.simdPosition = SIMD3(720, 440, 1150)
       cameraNode.look(at: SCNVector3(0, 288, 0))
       view?.pointOfView = cameraNode
@@ -589,5 +614,18 @@ struct VolumeSceneView: UIViewRepresentable {
       node.categoryBitMask = category
       parent.addChildNode(node)
     }
+  }
+}
+
+/// SceneKit's orthographic camera needs the actual viewport after SwiftUI layout.
+private final class ViewportFittingSceneView: SCNView {
+  var onSizeChange: ((CGSize) -> Void)?
+  private var lastSize = CGSize.zero
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    guard bounds.width > 0, bounds.height > 0, bounds.size != lastSize else { return }
+    lastSize = bounds.size
+    onSizeChange?(bounds.size)
   }
 }
