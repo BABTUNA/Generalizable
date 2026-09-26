@@ -214,9 +214,10 @@ struct DuoAdaptiveViewer<Content: View>: View {
                 SliceView(plane: .axial, state: state)
                     .overlay { FindingRings(state: state, findings: findings) }
                     .overlay { CutLine(state: state, visible: lidTilt > 1) }
-                    .overlay(alignment: .topLeading) { LensTag(text: "AXIAL  \(sliceLabel)").padding(10) }
+                    .overlay(alignment: .topLeading) { LensTag(text: "Top-down view · slice \(sliceLabel)").padding(10) }
                     .overlay(alignment: .bottomLeading) {
-                        LensTag(text: "base · flat", color: Color(red: 0.95, green: 0.70, blue: 0.24)).padding(10)
+                        // Matches the cut line's own colour so "the blue line" is unambiguous.
+                        LensTag(text: "Drag the blue line to move the cut", color: Color(red: 0.27, green: 0.81, blue: 0.88)).padding(10)
                     }
                     .frame(width: split.second.width, height: split.second.height)
                     .clipped()
@@ -536,7 +537,7 @@ private struct FindingRings: View {
     @Bindable var state: ViewerState
     var findings: [CaseFinding]
     var body: some View {
-        GeometryReader { _ in
+        GeometryReader { geo in
             if let vp = state.viewports[.axial], vp.viewSize.width > 0 {
                 let g = state.geometry
                 ForEach(Array(findings.enumerated()), id: \.element.id) { k, f in
@@ -546,7 +547,7 @@ private struct FindingRings: View {
                         if abs(d) < r {
                             let c = vp.voxelToView(v, g)
                             let rad = CGFloat((r * r - d * d).squareRoot()) * vp.pointsPerMM(g)
-                            LensRing(center: c, radius: rad, number: k + 1, label: f.title)
+                            LensRing(center: c, radius: rad, number: k + 1, label: f.title, containerWidth: geo.size.width)
                         }
                     }
                 }
@@ -562,10 +563,17 @@ struct LensRing: View {
     var radius: CGFloat
     var number: Int
     var label: String
+    /// Width of the pane this ring is drawn in, if known. When the label chip would run past
+    /// the right edge, it flips to the left of the badge instead of clipping.
+    var containerWidth: CGFloat? = nil
     static let magenta = Color(red: 1, green: 0.243, blue: 0.647)
+    private static let chipWidth: CGFloat = 240
     var body: some View {
         let r = max(radius, 9) + 5
         let badge = CGPoint(x: center.x + r * 0.72, y: center.y - r * 0.72)
+        let fitsRight = containerWidth.map { badge.x + 12 + Self.chipWidth <= $0 } ?? true
+        let chipCenterX = fitsRight ? badge.x + 12 + Self.chipWidth / 2 : badge.x - 12 - Self.chipWidth / 2
+        let chipAlignment: Alignment = fitsRight ? .leading : .trailing
         ZStack(alignment: .topLeading) {
             Circle().stroke(.black.opacity(0.6), lineWidth: 5)
                 .frame(width: 2 * r, height: 2 * r).position(center)
@@ -576,8 +584,8 @@ struct LensRing: View {
                 .position(badge)
             LensTag(text: label, color: .white, fill: Self.magenta.opacity(0.92))
                 .fixedSize()
-                .frame(width: 240, alignment: .leading)
-                .position(x: badge.x + 12 + 120, y: badge.y)
+                .frame(width: Self.chipWidth, alignment: chipAlignment)
+                .position(x: chipCenterX, y: badge.y)
         }
     }
 }
