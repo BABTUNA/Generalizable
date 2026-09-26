@@ -135,6 +135,7 @@ fragment float4 overviewFragment(OverviewVertexOut in [[stage_in]],
     float3 accumColor = float3(0.0);
     float accumAlpha = 0.0;
     bool crossedPlane = false;
+    bool prevClipped = false;
     float t = tStart;
 
     for (int i = 0; i < maxSteps; i++) {
@@ -153,11 +154,19 @@ fragment float4 overviewFragment(OverviewVertexOut in [[stage_in]],
         if (any(tc < float3(0.0)) || any(tc > float3(1.0))) continue;
 
         if (clipped) {
+            prevClipped = true;
             continue;
         }
 
-        if (!crossedPlane) {
+        // Paint the cut face only where this ray actually crosses from the clipped side into
+        // the kept side (never at the volume's outer air boundary, and never at tilt 0 where
+        // rays run parallel to the plane). Air on the face stays transparent.
+        bool atFace = prevClipped && !crossedPlane;
+        prevClipped = false;
+        if (atFace) {
             crossedPlane = true;
+            uint3 fdims = uint3(ctTex.get_width(), ctTex.get_height(), ctTex.get_depth());
+            if (labelAt(labelTex, tc, fdims) == 0) continue;
             float3 face = sliceColor(ctTex, labelTex, colorTable, linSampler,
                                       p, tc, u.cutUAxis.xyz, u.cutVAxis.xyz,
                                       u.texScale.xyz, u.texOffset.xyz, stepMM, level, width);

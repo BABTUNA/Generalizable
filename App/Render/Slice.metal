@@ -73,7 +73,9 @@ fragment float4 sliceFragment(SliceVertexOut in [[stage_in]],
         bool visible = label != 0 && lc.a > 0.5;
         const float overlayAlpha = 0.42;
         float3 gray3 = float3(windowed);
-        float3 base = visible ? mix(gray3, lc.rgb, overlayAlpha) : gray3;
+        // Peeled (hidden) tissue is dimmed hard so peeling reads clearly; background air stays as is.
+        bool peeled = label != 0 && !visible;
+        float3 base = visible ? mix(gray3, lc.rgb, overlayAlpha) : (peeled ? gray3 * 0.15 : gray3);
 
         // 1px boundary outline, checked in screen (slice) space so it stays crisp on an
         // oblique cut, not along the volume's raw x/y/z voxel grid.

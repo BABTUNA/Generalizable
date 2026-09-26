@@ -148,8 +148,13 @@ final class SliceRenderer: NSObject, MTKViewDelegate {
         let level = Float(window.first ?? 40)
         let width = Float(window.count > 1 ? window[1] : 400)
 
+        // Frame the whole cross-section: centre the view on the volume centre projected into
+        // the cut plane (same plane, in-plane shift only), not on the pivot/finding, which may
+        // sit off-centre and crop the slice.
+        let toCentre = bundle.centerMM - cut.originMM
+        let viewCentre = cut.originMM + simd_dot(toCentre, cut.uAxis) * cut.uAxis + simd_dot(toCentre, cut.vAxis) * cut.vAxis
         var uniforms = SliceUniforms(
-            originMM: SIMD4<Float>(cut.originMM, 0),
+            originMM: SIMD4<Float>(viewCentre, 0),
             uAxis: SIMD4<Float>(cut.uAxis, 0),
             vAxis: SIMD4<Float>(cut.vAxis, 0),
             texScale: SIMD4<Float>(scale, 0),
