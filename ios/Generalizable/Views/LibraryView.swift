@@ -136,6 +136,8 @@ struct LibraryView: View {
             }
             Text("CT · on-device 3D · AI findings")
                 .font(Theme.ui(13, .medium)).foregroundStyle(Theme.textTertiary)
+            Text("Demo · public research data · not a diagnosis")
+                .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary)
         }
         .padding(.top, Theme.Space.m)
     }
