@@ -6,7 +6,7 @@ This script follows the PRD "Pitch walkthrough" as amended by **A5**. The guided
 
 **Hinge rule (A3):** say *"change the cut angle by folding"* only if the Duo hinge has been confirmed working on the demo device that day. Otherwise use the on-screen **angle slider** and say *"change the cut angle"*. Never say "at any angle."
 
-**Current build (517a212):** the Overview pane renders empty at tilt 0, so point the audience at the slice pane. Update this note when the overview renders.
+**Current build (e54f4d8):** the Overview pane shows a 3D peel of the volume above the cut, with the finding marked in yellow. The layer list and the angle slider are on the **Controls** tab.
 
 **Before going on stage:** launch the app once so the cases are warm, then return to the case list. Keep the `scripts/demo_tour.sh` output directory open on a laptop as the screenshot fallback.
 
@@ -22,15 +22,15 @@ This script follows the PRD "Pitch walkthrough" as amended by **A5**. The guided
 ### Beat 2 — Select the bleed (≈15 s)
 
 - **Tap:** the **Subdural hemorrhage** finding.
-- **Say:** "Select a finding and the slice, the marker and a plain-language explanation all move to it at once. This one is bleeding between the brain and the skull. Three radiologists agreed on it."
-- **Audience sees:** the cut jumps to the bleed and a yellow ring marks it. The explanation appears with the finding.
+- **Say:** "Select a finding and the 3D view, the slice, the marker and a plain-language explanation all move to it at once. This one is bleeding between the brain and the skull. Three radiologists agreed on it."
+- **Audience sees:** the cut jumps to the bleed. A yellow ring marks it in the slice, and a yellow marker marks it in the 3D overview.
 - **If it fails:** relaunch with `-case head -select 1`, or show `head_layers_t0.png` and read the explanation aloud.
 
 ### Beat 3 — Peel and tilt (≈15 s)
 
 - **Tap:** open the **Controls** tab and hide **Skin**, then **Skull**. Then tilt: **fold the Duo lid** (if the hinge works) or **drag the angle slider** up to about 60°.
 - **Say:** "Peel away the colored layers until the bleed stands out. Then change the cut angle by folding." (Without the hinge: "…then change the cut angle.") "The cut rotates around the finding, so it stays in the centre."
-- **Audience sees:** the skin and skull lose their color, but the bone stays visible in the grayscale underneath. The bleed stays ringed. As the angle climbs, the slice turns from a top-down view into a front-on one.
+- **Audience sees:** the skin and skull fade to dark in the slice, and in the 3D overview the brain and the bleed show through. The bleed stays ringed. As the angle climbs, the slice turns from a top-down view into a front-on one.
 - **If it fails:** show `head_skin_bone_hidden.png` and `head_layers_t60.png` one after the other.
 
 ### Beat 4 — Patients vs doctors (≈10 s)
