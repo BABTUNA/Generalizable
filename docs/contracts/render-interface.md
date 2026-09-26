@@ -18,8 +18,9 @@ struct SliceView: View {                      // App/Render/SliceView.swift
        window: [Double])                      // [level, width] from meta.windowPresets
 }
 
-struct OverviewView: View {                   // mid-sagittal slice with the cut drawn as a line
-  init(bundle: CaseBundle, cut: Binding<CutPlane>, visibleLayerIDs: Set<Int>)   // drag → cut.dragPivot
+struct OverviewView: View {                   // 3D "peel" view: raymarched label volume, hidden layers transparent,
+  init(bundle: CaseBundle, cut: Binding<CutPlane>, visibleLayerIDs: Set<Int>,   // cut plane clips the near side
+       selectedFinding: CaseFinding?)         // vertical drag → cut.dragPivot along z; horizontal drag → orbit yaw
 }
 
 @Observable final class HingeTiltDriver {     // App/Duo/HingeTiltDriver.swift
@@ -45,3 +46,4 @@ struct DuoAdaptiveLayout<Slice: View, Controls: View>: View {   // App/Duo/DuoAd
 ## Changes
 
 - 2026-09-26: created (Commander).
+- 2026-09-26: OverviewView becomes a 3D peel raymarch, which shows peeling far better than a flat slice. Rendering parameters: `docs/viz/SPEC.md` (lane L4).
