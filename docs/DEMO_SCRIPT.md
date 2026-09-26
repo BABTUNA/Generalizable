@@ -50,6 +50,7 @@ This script follows the PRD "Pitch walkthrough" as amended by **A5**. The guided
 ### Beat 6 — Any volume (≈10 s)
 
 - **Tap:** back, then **The Sun**, then tap **The Core**. If there's time, open **Circuit board** and tap **A Via**.
+- **Prefer The Sun.** Circuit board is the first thing to cut under A7. Its slice through the solid chip is a plain grey square, so open it only if there's time to spare.
 - **Say:** "Nothing in this viewer is specific to medicine. Here it's the Sun, with the same layers, cut and points of interest. Here it's a circuit board. Any sliced volume works."
 - **Audience sees:** the same UI on a very different subject: the Sun's nested zones with the core ringed, and the chip package ringed on the board.
 - **If it fails:** show `sun.png` and `circuit.png`.
