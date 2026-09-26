@@ -1,0 +1,24 @@
+# L3c-render handoff
+
+- Task / state / UTC time: SliceView + OverviewView + Duo pieces built, committed. ~2026-09-26T21:10Z. Status: active (polishing peel view if time remains).
+- Objective and acceptance criteria: provide `SliceView`, `OverviewView` (App/Render/) and `HingeTiltDriver`, `DuoAdaptiveLayout` (App/Duo/) exactly per `docs/contracts/render-interface.md`; adopt `docs/viz/SPEC.md` parameters; body upright/not mirrored; hiding skin+fat reveals muscle/organs.
+- Files changed (committed on `agent/cc/l3c-render`, SHA `3733fd9`):
+  - `App/Render/ShaderTypes.swift` — uniform structs shared (by hand) with the two `.metal` files; `SliceMode` enum (contract type).
+  - `App/Render/LayerTables.swift` — builds the 256-entry colour tables from `bundle.layers` (visibility for slice, per-group raymarch opacity for peel) and the mm→texcoord scale/offset.
+  - `App/Render/OccupancyVolume.swift` — builds the "visible-label occupancy" 3D texture the peel shader shades from (SPEC.md section 2).
+  - `App/Render/Slice.metal`, `App/Render/SliceView.swift` — full-screen cut-plane slice: CT window + 0.42 layer overlay, 1px boundary outline computed in slice/screen space, finding ring.
+  - `App/Render/Overview.metal`, `App/Render/OverviewView.swift` — orthographic front-to-back peel raymarch, cut-plane clip (SPEC.md's ray-relative test, generalizes to the orbiting camera) with an opaque cut-face cap, Lambert shading from the blurred-occupancy gradient, per-group opacity rescaled from the 2mm reference to the actual step size, finding sphere. Pan gesture: horizontal orbits yaw, vertical calls `cut.dragPivot` along z.
+  - `App/Duo/HingeTiltDriver.swift` — wraps a `HingeAngleSource` (default `ManualOnlyHingeSource`) through `HingeMapping` + `HingeSmoother`; `isHingeAvailable` false off-Duo.
+  - `App/Duo/DuoAdaptiveLayout.swift` — side-by-side when regular/landscape, stacked (slice on top) when compact.
+  - `App/Render/RenderTestView.swift` — test harness; launch args `-case -tilt -mode -hide`.
+  - `App/ContentView.swift` — points at `RenderTestView` (this branch only, per contract; Commander drops at merge).
+- Checks run and result: `scripts/build_sim.sh` on iPhone 17 Pro simulator — build, install, launch, screenshot all succeeded for `body` (tilt 0/60, layers/CT, with/without `-hide 1,2`) and `head` (tilt 30, with its bleed finding). No automated tests; verified by eye.
+- Evidence paths (previews): `/tmp/claude-503/l3c-body60.png` (body, tilt 60, layers — abdominal cross-section + peel, organs coloured, boundary outlines visible), `/tmp/claude-503/l3c-hide.png` (same, skin+fat hidden — muscle/organs revealed, hidden layers fall back to plain CT gray), `/tmp/claude-503/l3c-head.png` (head case, tilt 30 — bleed finding tinted + yellow ring in both views).
+- Interface notes for other lanes: `SliceMode`/`SliceView`/`OverviewView`/`HingeTiltDriver`/`DuoAdaptiveLayout` signatures match `docs/contracts/render-interface.md` exactly (checked against `App/UI/RenderBindings.swift`'s stub typealiases on `demo/addenda-and-pipeline`@`56fb563` — the duplicate `SliceMode` there is the one the Commander deletes at merge). Copy `data/out/body` (or the repo's `App/Cases/body`) and `App/Cases/head` into the merged worktree for local testing; never committed here.
+- Fallbacks taken / scope cut:
+  - OverviewView's field of view uses the box's per-axis projected half-extent (support function) rather than a full arbitrary-camera-aware fit; at extreme tilts with the default (body-has-no-finding) pivot at `bundle.centerMM`, the kept half after clipping can occupy a modest fraction of the frame — correct per SPEC.md's clip semantics, just not maximally screen-filling. Acceptable for the demo; a tighter per-frame fit of just the *visible* geometry would need a bounding pass.
+  - Peel shading approximates SPEC.md's "Gaussian(sigma=1 voxel)-blurred occupancy gradient" with a plain (unblurred) occupancy volume sampled trilinearly at a 2-texel finite-difference offset, rather than a real 3-pass Gaussian blur — cheaper, visually close, but softer/noisier than the reference renders in `docs/viz/*.png`.
+  - Overview boundary outline on the cut face uses a fixed half-voxel offset along the cut plane's own axes rather than the true camera-screen pixel pitch (which the flat 2D SliceView has but the raymarched cut face does not).
+  - No explicit perf tuning pass beyond `maxSteps≈400` / half-voxel steps; fps not measured (Instruments unavailable here) — subjectively smooth on iPhone 17 Pro simulator during interaction, not verified against the 30fps target.
+- Blockers / requests: none open.
+- Next action (exact resumption step): if resuming, verify Overview fps and consider tightening its FOV fit and boundary-outline pixel pitch; otherwise this lane is done pending Commander merge/integration.
