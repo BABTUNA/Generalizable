@@ -2,7 +2,7 @@ import Foundation
 import PDFKit
 import UIKit
 import UniformTypeIdentifiers
-import Vision
+@preconcurrency import Vision
 
 /// Pulls report text out of an imported file: PDFKit for PDFs, Vision text recognition for photos and scans,
 /// and plain decoding for text files.
@@ -57,7 +57,7 @@ enum TextExtractor {
     return out.joined(separator: "\n")
   }
 
-  private static func recognize(_ image: CGImage) async throws -> String {
+  nonisolated private static func recognize(_ image: CGImage) async throws -> String {
     try await withCheckedThrowingContinuation { continuation in
       let request = VNRecognizeTextRequest { request, error in
         if let error {
@@ -69,12 +69,11 @@ enum TextExtractor {
       }
       request.recognitionLevel = .accurate
       request.usesLanguageCorrection = true
-      DispatchQueue.global(qos: .userInitiated).async {
-        do {
-          try VNImageRequestHandler(cgImage: image).perform([request])
-        } catch {
-          continuation.resume(throwing: error)
-        }
+      do {
+        // Runs synchronously on the caller's background task; the completion handler resumes the continuation.
+        try VNImageRequestHandler(cgImage: image).perform([request])
+      } catch {
+        continuation.resume(throwing: error)
       }
     }
   }

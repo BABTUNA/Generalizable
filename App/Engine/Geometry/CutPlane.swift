@@ -37,6 +37,16 @@ struct CutPlane: Equatable {
     return plane
   }
 
+  /// Slides the field of view within the plane so the body's long axis stays centred, without moving the plane
+  /// itself. The pivot stays on the cut; only the framing changes (Slicer's field-of-view origin, XYZOrigin).
+  func centeredOnBodyAxis(atZ z: Float) -> CutPlane {
+    var copy = self
+    let target = SIMD3<Float>(0, 0, z)
+    let d = target - center
+    copy.center = center + u * simd_dot(d, u) + v * simd_dot(d, v)
+    return copy
+  }
+
   /// Side view through `x`, anterior on the left of the screen, superior at the top.
   static func sagittal(x: Float, center: SIMD3<Float>, fovMM: SIMD2<Float>) -> CutPlane {
     CutPlane(center: SIMD3(x, center.y, center.z), u: SIMD3(0, 1, 0), v: SIMD3(0, 0, 1), fovMM: fovMM)

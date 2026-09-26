@@ -8,8 +8,8 @@ import simd
 @MainActor
 @Observable
 final class ViewerModel {
-  static let sliceFOV = SIMD2<Float>(300, 300)
-  static let sideFOV = SIMD2<Float>(384, 576)
+  static let sliceFOV = SIMD2<Float>(360, 360)
+  static let sideFOV = SIMD2<Float>(280, 420)
   static let slicePixels = 320
 
   var scanCase: ScanCase
@@ -50,11 +50,12 @@ final class ViewerModel {
   var pivot: SIMD3<Float> { selectedFinding?.anchorMM ?? SIMD3(0, 0, 300) }
 
   var plane: CutPlane {
-    .hinged(pivot: pivot, tiltDegrees: Float(tilt), offsetMM: Float(offsetMM), fovMM: Self.sliceFOV)
+    CutPlane.hinged(pivot: pivot, tiltDegrees: Float(tilt), offsetMM: Float(offsetMM), fovMM: Self.sliceFOV)
+      .centeredOnBodyAxis(atZ: pivot.z)
   }
 
   var sidePlane: CutPlane {
-    .sagittal(x: pivot.x, center: PatientSpace.centerMM, fovMM: Self.sideFOV)
+    .sagittal(x: pivot.x, center: SIMD3(0, 0, 330), fovMM: Self.sideFOV)
   }
 
   var options: RenderOptions {
