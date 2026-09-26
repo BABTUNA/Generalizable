@@ -22,7 +22,7 @@ struct OverviewUniforms {
     float4 boxMax;
     float4 params0; // halfWidth, halfHeight, stepMM, maxSteps
     float4 params1; // findingRadius, hasFinding, unused, window level
-    float4 params2; // window width, unused, unused, unused
+    float4 params2; // window width, keepSign (degenerate clip side), unused, unused
 };
 
 struct OverviewVertexOut {
@@ -136,7 +136,9 @@ fragment float4 overviewFragment(OverviewVertexOut in [[stage_in]],
     float accumAlpha = 0.0;
     bool crossedPlane = false;
     bool prevClipped = false;
-    float t = tStart;
+    // Per-pixel jittered ray start: breaks the wood-grain/plaid banding of fixed-step marching.
+    float jitter = fract(sin(dot(in.ndc.xy, float2(12.9898, 78.233))) * 43758.5453);
+    float t = tStart + jitter * stepMM;
 
     for (int i = 0; i < maxSteps; i++) {
         if (t > tEnd || accumAlpha > 0.98) break;
@@ -148,7 +150,7 @@ fragment float4 overviewFragment(OverviewVertexOut in [[stage_in]],
         // the plane (tilt 0, straight-on) there's no per-ray crossing, so fall back to
         // keeping the plane's own +normal half.
         float signed_ = dot(p - u.cutOrigin.xyz, u.cutNormal.xyz);
-        bool clipped = (abs(dn) > 1e-3) ? (signed_ * dn < 0.0) : (signed_ > 0.0);
+        bool clipped = (abs(dn) > 1e-3) ? (signed_ * dn < 0.0) : (signed_ * u.params2.y < 0.0);
 
         float3 tc = p * u.texScale.xyz + u.texOffset.xyz;
         if (any(tc < float3(0.0)) || any(tc > float3(1.0))) continue;

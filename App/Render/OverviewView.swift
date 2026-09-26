@@ -172,12 +172,34 @@ final class OverviewRenderer: NSObject, MTKViewDelegate {
         let camRight = rotateZ(rightBase)
         let camUp = upBase
 
+        // Which side of the cut survives: the shader keeps signed*dn >= 0 per ray; when rays run
+        // parallel to the plane (dn ~ 0, e.g. tilt 0 from the front) keep the side holding the
+        // volume centre, so the larger part of the anatomy stays visible.
+        let dn = simd_dot(camForward, cut.normal)
+        let keepSign: Float = abs(dn) > 1e-3 ? (dn > 0 ? 1 : -1)
+            : (simd_dot(bundle.centerMM - cut.originMM, cut.normal) >= 0 ? 1 : -1)
+
+        // Frame the kept part of the volume, not the whole box, so the model fills the pane.
+        let lo = bundle.centerMM - bundle.extentMM * 0.5, hi = bundle.centerMM + bundle.extentMM * 0.5
+        var corners: [SIMD3<Float>] = []
+        for i in 0..<8 { corners.append(SIMD3<Float>(i & 1 == 0 ? lo.x : hi.x, i & 2 == 0 ? lo.y : hi.y, i & 4 == 0 ? lo.z : hi.z)) }
+        func side(_ p: SIMD3<Float>) -> Float { simd_dot(p - cut.originMM, cut.normal) * keepSign }
+        var kept = corners.filter { side($0) >= 0 }
+        for a in 0..<8 { for b in (a + 1)..<8 where (a ^ b).nonzeroBitCount == 1 {
+            let sa = side(corners[a]), sb = side(corners[b])
+            if (sa < 0) != (sb < 0) { kept.append(corners[a] + (corners[b] - corners[a]) * (sa / (sa - sb))) }
+        } }
+        if kept.isEmpty { kept = corners }
+        let kMin = kept.reduce(SIMD3<Float>(repeating: .greatestFiniteMagnitude)) { simd_min($0, $1) }
+        let kMax = kept.reduce(SIMD3<Float>(repeating: -.greatestFiniteMagnitude)) { simd_max($0, $1) }
+        let keptCenter = (kMin + kMax) * 0.5, keptExtent = kMax - kMin
+
         let diag = length(bundle.extentMM)
-        let camPos = bundle.centerMM - camForward * diag
+        let camPos = keptCenter - camForward * diag
 
         let aspect = Float(max(view.drawableSize.width, 1) / max(view.drawableSize.height, 1))
-        let rawHalfW = LayerTables.projectedHalfExtent(extentMM: bundle.extentMM, direction: camRight) * 1.15
-        let rawHalfH = LayerTables.projectedHalfExtent(extentMM: bundle.extentMM, direction: camUp) * 1.15
+        let rawHalfW = LayerTables.projectedHalfExtent(extentMM: keptExtent, direction: camRight) * 1.1
+        let rawHalfH = LayerTables.projectedHalfExtent(extentMM: keptExtent, direction: camUp) * 1.1
         var halfH = max(rawHalfH, rawHalfW / aspect)
         var halfW = halfH * aspect
         if halfW < rawHalfW { halfW = rawHalfW; halfH = halfW / aspect }
@@ -211,7 +233,7 @@ final class OverviewRenderer: NSObject, MTKViewDelegate {
             params1: SIMD4<Float>(Float(selectedFinding?.radiusMM ?? 0),
                                    selectedFinding != nil ? 1 : 0,
                                    0, level),
-            params2: SIMD4<Float>(width, 0, 0, 0)
+            params2: SIMD4<Float>(width, keepSign, 0, 0)
         )
 
         encoder.setRenderPipelineState(pipeline)
