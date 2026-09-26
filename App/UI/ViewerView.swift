@@ -85,6 +85,7 @@ struct ViewerView: View {
             modeSection
             layersSection
             findingsSection
+            AnalysisCard(caseName: model.bundle.name)
             tiltSection
             sliceSection
             resetAndWindowSection
