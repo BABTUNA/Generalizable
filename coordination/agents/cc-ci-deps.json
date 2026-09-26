@@ -1,0 +1,14 @@
+{
+  "agent_id": "cc-ci-deps",
+  "role": "worker",
+  "kind": "claude-code-session",
+  "model": "claude-opus-5-5",
+  "machine": "MacBook Air (5)",
+  "lane": "CI-deps",
+  "owns_paths": [".github/**", "PanTS-Demo/package.json", "PanTS-Demo/package-lock.json", "flask-server/requirements.txt"],
+  "branch": "main",
+  "handoff": null,
+  "session": null,
+  "registered_utc": "2026-09-26T22:00:47Z",
+  "status": "active"
+}
