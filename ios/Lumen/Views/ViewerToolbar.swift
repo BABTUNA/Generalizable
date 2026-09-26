@@ -19,10 +19,16 @@ struct ViewerToolbar: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(state.loaded.info.title)
                         .font(Theme.ui(15, .semibold)).foregroundStyle(Theme.text).lineLimit(1)
-                    Text(state.loaded.info.id)
+                    // The title already carries the case number; the full ID moved out to make room.
+                    Text("Not a diagnosis")
                         .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary).lineLimit(1)
                 }
+                .layoutPriority(1)
                 Spacer(minLength: 4)
+                // Layout lives here, not in row 2: on the Duo's narrow half row 2 ran off-screen.
+                LumenSegmented(selection: layoutBinding, items: ViewerLayout.allCases.map {
+                    .init(value: $0, title: nil, icon: $0.lumenIcon)
+                }, compact: true)
                 LumenIconButton(systemName: "list.bullet.below.rectangle", active: showOrgans) {
                     showOrgans.toggle()
                 }
@@ -37,9 +43,6 @@ struct ViewerToolbar: View {
                     }, compact: true)
                     windowMenu
                     labelsControl
-                    LumenSegmented(selection: layoutBinding, items: ViewerLayout.allCases.map {
-                        .init(value: $0, title: nil, icon: $0.lumenIcon)
-                    }, compact: true)
                 }
                 .padding(.vertical, 1)
             }
@@ -68,8 +71,7 @@ struct ViewerToolbar: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.lefthalf.filled").font(.system(size: 12, weight: .semibold))
                 Text(state.window.name).font(Theme.ui(12, .semibold)).lineLimit(1)
-                Text("\(Int(state.window.width))/\(Int(state.window.center))")
-                    .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary)
+                // W/L numbers are in the status bar; repeating them here pushed the row off-screen.
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
                     .foregroundStyle(Theme.textTertiary)
             }

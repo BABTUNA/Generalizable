@@ -132,7 +132,8 @@ struct ViewerView: View {
                     .init(value: $0, title: $0.lumenTitle, icon: nil)
                 }, compact: true)
                 .scaleEffect(state.layout == .quad ? 0.86 : 1)
-                .padding(.bottom, 8)
+                // MeshView has its own bottom control capsule; sit above it instead of on it.
+                .padding(.bottom, state.volumeMode == .meshes ? 52 : 8)
             }
         }
     }
@@ -240,7 +241,8 @@ private struct ViewerStatusBar: View {
         }
         .font(Theme.mono(11))
         .lineLimit(1)
-        .padding(.horizontal, Theme.Space.l)
+        .padding(.leading, 78)   // DuoAdaptiveViewer's hinge chip sits bottom-leading
+        .padding(.trailing, Theme.Space.l)
         .frame(height: 30)
     }
 }
