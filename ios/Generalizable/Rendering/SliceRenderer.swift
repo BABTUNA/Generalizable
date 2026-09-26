@@ -20,12 +20,15 @@ struct SliceParams: Equatable {
     var outline: Bool
     var selected: UInt8
     var mask: [UInt32]   // 8 words
+    var showAI = false
+    var aiOpacity: Float = 0.6
 }
 
 private struct SliceUniforms {
     var winLow: Float, winHigh: Float, labelOpacity: Float, outline: Float
     var plane: Int32, slice: Int32, selected: Int32, hasLabels: Int32
     var mask: (UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32)
+    var aiOpacity: Float = 0, hasAI: Int32 = 0
 }
 
 private struct SliceVertex { var position: SIMD2<Float>; var uv: SIMD2<Float> }
@@ -88,18 +91,33 @@ final class SliceRenderer: NSObject, MTKViewDelegate {
                                   outline: p.outline ? 1 : 0, plane: Self.planeIndex(p.plane),
                                   slice: Int32(p.slice), selected: Int32(p.selected),
                                   hasLabels: (p.showLabels && textures.labels != nil) ? 1 : 0,
-                                  mask: (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]))
+                                  mask: (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]),
+                                  aiOpacity: p.aiOpacity,
+                                  hasAI: (p.showAI && textures.aiHeatmap != nil) ? 1 : 0)
             enc.setRenderPipelineState(pso)
             enc.setVertexBytes(&verts, length: MemoryLayout<SliceVertex>.stride * 4, index: 0)
             enc.setFragmentBytes(&u, length: MemoryLayout<SliceUniforms>.stride, index: 0)
             enc.setFragmentTexture(textures.ct, index: 0)
             enc.setFragmentTexture(textures.labels ?? dummyLabelTexture(), index: 1)
             enc.setFragmentTexture(textures.organLUT, index: 2)
+            enc.setFragmentTexture(textures.aiHeatmap ?? dummyHeatTexture(), index: 3)
+            enc.setFragmentTexture(textures.aiLUT, index: 4)
             enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         }
         enc.endEncoding()
         cmd.present(drawable)
         cmd.commit()
+    }
+
+    private var dummyHeat: MTLTexture?
+    private func dummyHeatTexture() -> MTLTexture {
+        if let t = dummyHeat { return t }
+        let d = MTLTextureDescriptor()
+        d.textureType = .type3D; d.pixelFormat = .r8Unorm; d.width = 1; d.height = 1; d.depth = 1
+        d.usage = .shaderRead
+        let t = Self.device.makeTexture(descriptor: d)!
+        dummyHeat = t
+        return t
     }
 
     private func dummyLabelTexture() -> MTLTexture {

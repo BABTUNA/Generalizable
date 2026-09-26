@@ -2,37 +2,40 @@
 //
 // Hinge-first iPhone Duo experience for the Generalizable viewer.
 //
-// Apple API surface used (verified in the iOS 27.1 SDK shipped with Xcode 27.1, not from memory):
-// - SwiftUI `View.onHingeChange(isEnabled:_:)`, `DeviceHingeContext { hinge: DeviceHinge? }`,
-//   `DeviceHinge { status: Status (.closed/.partiallyOpen/.fullyOpen), angle: Angle }`
+// Apple API surface used (verified in the iOS 27.1 SDK shipped with Xcode 27.1, not from memory).
+// Paths relative to Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/
+// iPhoneOS27.1.sdk/System/Library/Frameworks/:
+// - `View.onHingeChange(isEnabled:_:)` (line ~24267), `DeviceHingeContext { hinge: DeviceHinge? }`,
+//   `DeviceHinge { status: Status (.closed/.partiallyOpen/.fullyOpen), angle: Angle }` (~16741)
 //     SwiftUICore.framework/Modules/SwiftUICore.swiftmodule/arm64e-apple-ios.swiftinterface
 //   (UIKit equivalent: UIKit.framework/Headers/UIHinge.h, UIHingeInteraction.h — angle in radians)
-// - SwiftUI `GeometryProxy.reservedRegions(kind: .division)` → `ReservedRegion.frame`
-//   (where the hinge divides the screen), same SwiftUICore .swiftinterface;
-//   UIKit: UIKit.framework/Headers/UIViewReservedRegion.h, UIView.h (ReservedRegion category)
-// - SwiftUI `View.sceneAccessory { CameraCaptureAccessory { } ; ExternalNonInteractiveAccessory { } }`
-//     SwiftUI.framework/Modules/SwiftUI.swiftmodule/arm64e-apple-ios.swiftinterface
-//   UIKit: UIKit.framework/Headers/UISceneAccessory.h, UIWindowScene.h
-//   (UIWindowSceneSessionRoleCameraCaptureAccessory). There is no general-purpose "outer display"
-//   API: the outer panel is only reachable as a camera-capture accessory (system decides, only while
-//   a capture session runs) or an external display accessory (non-interactive).
-// (All paths relative to Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS27.1.sdk/System/Library/Frameworks/.)
+// - `GeometryProxy.reservedRegions(kind: .division)` → `ReservedRegion.frame` (~4843), same
+//   SwiftUICore .swiftinterface; UIKit: UIKit.framework/Headers/UIViewReservedRegion.h
+// - `View.sceneAccessory { CameraCaptureAccessory { } ; ExternalNonInteractiveAccessory { } }`
+//   (~19803, ~20779, ~20802) SwiftUI.framework/Modules/SwiftUI.swiftmodule/arm64e-apple-ios.swiftinterface
+//   UIKit: UIKit.framework/Headers/UISceneAccessory.h, UIWindowScene.h. There is no general-purpose
+//   "outer display" API: the outer panel is only reachable as a camera-capture accessory (system
+//   decides, only while a capture session runs) or an external non-interactive display accessory.
+// - `View.sensoryFeedback(_:trigger:condition:)` (~2549), same SwiftUI .swiftinterface — detent haptics.
 //
 // Layout precedent: split at the hinge's `.division` reserved region, the SDK's own contract for
 // "a region where an element should divide into two separate regions" (UIViewReservedRegion.h),
-// the same idea as Microsoft's Surface Duo TwoPaneView (microsoft/surface-duo-sdk, and
-// Jetpack WindowManager FoldingFeature: separate content on each side of the fold).
+// the same idea as Microsoft's Surface Duo TwoPaneView (microsoft/surface-duo-sdk) and Jetpack
+// WindowManager FoldingFeature: separate content on each side of the fold, never across it.
 //
-// Hinge → anatomy mapping ("the hinge is a physical cutting plane"):
-//   Fold angle θ (0 = closed, 180° = flat). The phone's lower half is the patient lying on the table
-//   (coronal plane). The upright half is the cut: its tilt from the table is φ = 180° − θ, rotating
-//   about the patient's left–right axis (canonical +x). So
-//       clipNormal = normalize((0, cos φ, sin φ))  in canonical voxel space, through `state.cursor`
-//   θ = 180° (flat)   → clip off (nil), the normal viewer is shown
-//   θ = 135°          → 45° oblique cut between coronal and axial
-//   θ =  90° (laptop) → pure axial cut: the upright screen *is* the axial slice plane
-//   θ <  90°          → keeps tilting past axial toward the reversed coronal (tent)
-// Alternative "Scrub" mode: θ ∈ [20°,160°] maps linearly onto the focused plane's slice range.
+// Hinge → anatomy mapping, kept consistent with the team's reference app (repo root):
+//   App/Core/CutPlane.swift  `HingeMapping.tilt(forHingeAngle:)`: tilt = 180° − clamp(θ, 90...180);
+//     tilt 0° = axial, tilt 90° = coronal, rotating about the patient's left–right axis (+x).
+//   App/Core/CutPlane.swift  `HingeMapping.sliceFraction(forHingeAngle:closedDeg: 10, flatDeg: 180)`
+//     for scrub mode (closed = inferior, flat = superior), used by App/Duo/HingeScrubDriver.swift.
+//   App/Core/CutPlane.swift  `HingeSmoother` (exponential low-pass, alpha 0.35) — ported below.
+//   App/Core/DuoFoldGeometry.swift: the upright display rises at elevation e = 180° − θ.
+// Here: θ (0 = closed, 180 = flat).
+//   Cut:   clipNormal = (0, sin t, cos t) through `state.cursor`, t = tilt. The renderer keeps
+//          dot(n,p)+d <= 0 (Shaders/Volume.metal), so at t = 0 the superior half is removed and you
+//          look down on the axial cut; at laptop (θ = 90°) the anterior half is removed (coronal).
+//   Scrub: θ → axial slice via the team's sliceFraction.
+// Posture layout (laptop / tent): upright half = axial 2D slice, flat half = 3D you can touch.
 
 import SwiftUI
 import simd
@@ -46,6 +49,12 @@ enum DuoPosture: Equatable {
 enum HingeMapping: String, CaseIterable, Identifiable {
     case cut = "Cut", scrub = "Scrub"
     var id: String { rawValue }
+    var hint: String {
+        switch self {
+        case .cut: "Fold to cut the 3D through the crosshair · flat = off, 90° = coronal"
+        case .scrub: "Fold to scrub axial slices · closed = feet, flat = head"
+        }
+    }
 }
 
 /// Hinge state as the viewer consumes it — real (from `onHingeChange`) or simulated.
@@ -62,23 +71,47 @@ struct HingeReading: Equatable {
 }
 
 enum HingeMath {
-    /// Oblique cutting-plane normal for a fold angle (see header).
+    /// Team A2 mapping (App/Core/CutPlane.swift `HingeMapping.tilt`): below 90° the tilt holds at 90°.
+    static func tiltDegrees(hinge degrees: Double) -> Double { 180 - min(max(degrees, 90), 180) }
+
+    /// Cutting-plane normal for a fold angle (see header). nil when flat (no cut).
     static func clipNormal(degrees: Double) -> SIMD3<Float>? {
         guard degrees <= 165 else { return nil }
-        let phi = Float((180 - degrees) * .pi / 180)
-        return simd_normalize(SIMD3<Float>(0, cos(phi), sin(phi)))
+        let t = Float(tiltDegrees(hinge: degrees) * .pi / 180)
+        return simd_normalize(SIMD3<Float>(0, sin(t), cos(t)))
     }
 
-    /// Fraction 0...1 for scrub mode.
+    /// Team A12 mapping (App/Core/CutPlane.swift `HingeMapping.sliceFraction`, closedDeg 10).
     static func scrubFraction(degrees: Double) -> Float {
-        Float(min(max((degrees - 20) / 140, 0), 1))
+        Float(min(max((degrees - 10) / (180 - 10), 0), 1))
     }
+
+    /// Named detents that get a haptic tick.
+    static let detents: [(name: String, degrees: Double)] = [
+        ("Flat", 180), ("Oblique", 135), ("Laptop", 90), ("Tent", 60),
+    ]
+    static func detent(at degrees: Double) -> String? {
+        detents.first { abs($0.degrees - degrees) <= 3 }?.name
+    }
+}
+
+/// Port of the team's `HingeSmoother` (App/Core/CutPlane.swift): exponential low-pass so hinge
+/// jitter doesn't make the slice/cut flicker.
+struct HingeLowPass {
+    var alpha: Double = 0.35
+    private var smoothed: Double?
+    mutating func update(_ x: Double) -> Double {
+        let next = smoothed.map { alpha * x + (1 - alpha) * $0 } ?? x
+        smoothed = next
+        return next
+    }
+    mutating func reset(_ x: Double) { smoothed = x }
 }
 
 // MARK: - Adaptive viewer
 
-/// Wraps a viewer so it adapts to iPhone Duo fold/hinge state. No-op on other devices unless the
-/// hidden hinge simulator (triple-tap with two fingers, or the chip) is used.
+/// Wraps a viewer so it adapts to iPhone Duo fold/hinge state. On devices without hinge events
+/// a small hinge pill (in the bottom safe area, or on the hinge seam when folded) simulates it.
 struct DuoAdaptiveViewer<Content: View>: View {
     @Bindable var state: ViewerState
     @ViewBuilder var content: () -> Content
@@ -87,26 +120,33 @@ struct DuoAdaptiveViewer<Content: View>: View {
     @State private var simDegrees: Double = 180
     @State private var simEnabled = false
     @State private var showSimulator = false
+    @State private var forcePill = false
     @State private var mapping: HingeMapping = .cut
 
+    private var usingSim: Bool { simEnabled || realDegrees == nil }
     private var reading: HingeReading {
-        if simEnabled || realDegrees == nil { return HingeReading(degrees: simDegrees, isReal: false) }
-        return HingeReading(degrees: realDegrees ?? 180, isReal: true)
+        usingSim ? HingeReading(degrees: simDegrees, isReal: false)
+                 : HingeReading(degrees: realDegrees ?? 180, isReal: true)
     }
+    /// The pill auto-hides once the real hinge talks (triple-tap brings it back).
+    private var pillVisible: Bool { usingSim || forcePill || showSimulator }
 
     var body: some View {
         GeometryReader { proxy in
             let hinge = DuoHingeGeometry(proxy: proxy)
+            let split = hinge.split(in: proxy.size)
             ZStack {
                 switch reading.posture {
                 case .flat, .closed:
                     content()
                 case .folded:
-                    foldedLayout(hinge: hinge, size: proxy.size)
+                    foldedLayout(split: split)
                         .transition(.opacity)
                 }
             }
-            .overlay(alignment: .bottomLeading) { hingeChip }
+            .overlay(alignment: .topLeading) {
+                if pillVisible { pill(split: split, safe: proxy.safeAreaInsets, size: proxy.size) }
+            }
             .overlay { if showSimulator { simulatorPanel } }
         }
         .animation(.snappy(duration: 0.25), value: reading.posture)
@@ -114,9 +154,11 @@ struct DuoAdaptiveViewer<Content: View>: View {
         .modifier(DuoAccessories(state: state))
         .onChange(of: reading) { _, r in apply(r) }
         .onChange(of: mapping) { _, _ in apply(reading) }
-        // Hidden debug trigger that won't collide with one-finger slice gestures.
+        .sensoryFeedback(.impact(weight: .medium), trigger: HingeMath.detent(at: reading.degrees)) { _, new in new != nil }
+        .sensoryFeedback(.selection, trigger: reading.posture)
+        // Hidden trigger to re-show the pill on a real Duo; won't collide with slice drags.
         .simultaneousGesture(
-            TapGesture(count: 3).onEnded { withAnimation { showSimulator.toggle() } }
+            TapGesture(count: 3).onEnded { withAnimation { forcePill.toggle() } }
         )
     }
 
@@ -130,47 +172,59 @@ struct DuoAdaptiveViewer<Content: View>: View {
         case .scrub:
             if state.clipNormal != nil { state.clipNormal = nil }
             guard r.posture == .folded else { return }
-            let plane = state.focusedPlane
-            let maxV = Float(state.sliceCount(for: plane) - 1)
-            state.setSlice(HingeMath.scrubFraction(degrees: r.degrees) * maxV, for: plane)
+            let maxV = Float(state.sliceCount(for: .axial) - 1)
+            state.setSlice(HingeMath.scrubFraction(degrees: r.degrees) * maxV, for: .axial)
         }
     }
 
-    // MARK: Folded: lightbox (2D) + model (3D), split exactly at the hinge
+    // MARK: Folded (laptop / tent): axial 2D on the upright half, 3D on the flat half
 
     @ViewBuilder
-    private func foldedLayout(hinge: DuoHingeGeometry, size: CGSize) -> some View {
-        let split = hinge.split(in: size)
+    private func foldedLayout(split: DuoHingeGeometry.Split) -> some View {
         ZStack(alignment: .topLeading) {
             Color.black
-            // Upright half (top / leading) = the model; flat half = the lightbox you touch.
-            threeD
+            SliceView(plane: .axial, state: state)
                 .frame(width: split.first.width, height: split.first.height)
                 .clipped()
-                .overlay(alignment: .topLeading) { badge("3D · \(cutLabel)") }
+                .overlay(alignment: .topLeading) { badge("Axial · \(sliceLabel)") }
                 .offset(x: split.first.minX, y: split.first.minY)
-            SliceView(plane: state.focusedPlane, state: state)
+            threeD
                 .frame(width: split.second.width, height: split.second.height)
                 .clipped()
-                .overlay(alignment: .topLeading) { badge("\(state.focusedPlane.rawValue.capitalized) · \(sliceLabel)") }
+                .overlay(alignment: .topLeading) { badge("3D · \(cutLabel)") }
+                .overlay(alignment: .bottom) { hintLine }
                 .offset(x: split.second.minX, y: split.second.minY)
             HingeSeam(rect: split.seam, vertical: split.vertical, degrees: reading.degrees)
                 .allowsHitTesting(false)
         }
     }
 
+    /// Cut mode needs the ray-caster (it honours `clipNormal`); meshes don't clip.
     @ViewBuilder private var threeD: some View {
-        switch state.volumeMode {
-        case .meshes: MeshView(state: state)
-        case .volume, .mip: VolumeView(state: state)
+        if mapping == .cut || state.volumeMode != .meshes {
+            VolumeView(state: state)
+        } else {
+            MeshView(state: state)
         }
     }
 
     private var cutLabel: String {
-        mapping == .scrub ? "hinge scrubs slices" : "hinge cut \(Int(180 - reading.degrees))°"
+        mapping == .scrub ? "hinge scrubs axial" : "cut \(Int(HingeMath.tiltDegrees(hinge: reading.degrees).rounded()))° from axial"
     }
     private var sliceLabel: String {
-        "\(Int(state.slice(for: state.focusedPlane)) + 1)/\(state.sliceCount(for: state.focusedPlane))"
+        "\(Int(state.slice(for: .axial)) + 1)/\(state.sliceCount(for: .axial))"
+    }
+
+    private var hintLine: some View {
+        Label(mapping.hint, systemImage: "rectangle.portrait.and.arrow.forward")
+            .labelStyle(.titleAndIcon)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.white.opacity(0.75))
+            .lineLimit(1).minimumScaleFactor(0.7)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(.black.opacity(0.45), in: Capsule())
+            .padding(.bottom, 8)
+            .allowsHitTesting(false)
     }
 
     private func badge(_ text: String) -> some View {
@@ -182,29 +236,45 @@ struct DuoAdaptiveViewer<Content: View>: View {
             .allowsHitTesting(false)
     }
 
-    // MARK: Debug / demo hinge control
+    // MARK: Hinge pill (simulator / demo fallback)
 
-    private var hingeChip: some View {
-        Button { withAnimation { showSimulator.toggle() } } label: {
-            HStack(spacing: 4) {
-                Image(systemName: reading.isReal ? "laptopcomputer" : "slider.horizontal.below.rectangle")
-                Text("\(Int(reading.degrees))°").monospacedDigit()
-            }
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 8).padding(.vertical, 5)
-            .background(.ultraThinMaterial, in: Capsule())
-            .opacity(reading.isReal && !showSimulator ? 0.35 : 0.8)
+    /// Folded: centred on the hinge seam (no imagery there). Flat: in the bottom safe-area strip
+    /// beside the home indicator, trailing, so it never sits on a pane.
+    private func pill(split: DuoHingeGeometry.Split, safe: EdgeInsets, size: CGSize) -> some View {
+        let label = HStack(spacing: 5) {
+            Image(systemName: reading.isReal ? "laptopcomputer" : "hand.draw")
+            Text(reading.posture == .flat && !reading.isReal ? "Fold" : "\(Int(reading.degrees.rounded()))°")
+                .monospacedDigit()
         }
-        .buttonStyle(.plain)
-        .padding(10)
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(.white.opacity(0.9))
+        .padding(.horizontal, 9).frame(height: 22)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.white.opacity(0.15)))
+        let pillW: CGFloat = 64, pillH: CGFloat = 22
+        let origin: CGPoint
+        if reading.posture == .folded {
+            origin = split.vertical
+                ? CGPoint(x: split.seam.midX - pillW / 2, y: size.height - safe.bottom - pillH - 8)
+                : CGPoint(x: size.width - pillW - 12, y: split.seam.midY - pillH / 2)
+        } else {
+            // Bottom safe-area strip (home-indicator row); fall back to just inside the edge.
+            let y = safe.bottom >= pillH ? size.height + (safe.bottom - pillH) / 2 : size.height - pillH - 2
+            origin = CGPoint(x: size.width - pillW - 14, y: y)
+        }
+        return Button { withAnimation(.snappy) { showSimulator.toggle() } } label: { label }
+            .buttonStyle(.plain)
+            .frame(width: pillW, height: pillH)
+            .offset(x: origin.x, y: origin.y)
+            .accessibilityLabel("Hinge control")
     }
 
     private var simulatorPanel: some View {
-        VStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Hinge").font(.headline)
+                Label("Hinge", systemImage: "rectangle.portrait.and.arrow.forward").font(.headline)
                 Spacer()
-                Text(reading.isReal ? "device" : "simulated")
+                Text(reading.isReal ? "device hinge" : "simulated")
                     .font(.caption).foregroundStyle(.secondary)
                 Button { withAnimation { showSimulator = false } } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -215,20 +285,22 @@ struct DuoAdaptiveViewer<Content: View>: View {
                 Slider(value: $simDegrees, in: 0...180, step: 1) { _ in simEnabled = true }
             }
             HStack(spacing: 8) {
-                ForEach([("Flat", 180.0), ("Oblique", 135.0), ("Laptop", 90.0), ("Tent", 60.0)], id: \.0) { name, deg in
-                    Button(name) { simEnabled = true; withAnimation { simDegrees = deg } }
+                ForEach(HingeMath.detents, id: \.name) { d in
+                    Button(d.name) { simEnabled = true; withAnimation(.smooth) { simDegrees = d.degrees } }
                         .buttonStyle(.bordered).controlSize(.small)
                 }
             }
             Picker("Mapping", selection: $mapping) {
                 ForEach(HingeMapping.allCases) { Text($0.rawValue).tag($0) }
             }.pickerStyle(.segmented)
+            Text("Folded: top = axial slice, bottom = 3D. \(mapping.hint).")
+                .font(.caption2).foregroundStyle(.secondary)
             if realDegrees != nil {
                 Toggle("Override device hinge", isOn: $simEnabled).font(.caption)
             }
         }
         .padding(14)
-        .frame(maxWidth: 340)
+        .frame(maxWidth: 360)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .shadow(radius: 12)
         .padding()
@@ -297,14 +369,15 @@ private struct HingeSeam: View {
 
 private struct HingeObserver: ViewModifier {
     @Binding var degrees: Double?
+    @State private var lowPass = HingeLowPass()
     func body(content: Content) -> some View {
         if #available(iOS 27.1, *) {
             content.onHingeChange { _, new in
                 if let h = new.hinge {
                     // Status is authoritative for the endpoints; the angle can be coarse.
-                    if h.status == .closed { degrees = 0 }
-                    else if h.status == .fullyOpen { degrees = 180 }
-                    else { degrees = min(max(h.angle.degrees, 0), 180) }
+                    if h.status == .closed { lowPass.reset(0); degrees = 0 }
+                    else if h.status == .fullyOpen { lowPass.reset(180); degrees = 180 }
+                    else { degrees = lowPass.update(min(max(h.angle.degrees, 0), 180)) }
                 } else {
                     degrees = nil
                 }
@@ -342,6 +415,11 @@ struct PatientFacingView: View {
             Color.black.ignoresSafeArea()
             MeshView(state: state)
             VStack(alignment: .leading, spacing: 4) {
+                if let ai = state.loaded.ai {
+                    let p = ai.series.first { $0.name == ai.headlineClass }?.probability ?? 0
+                    Text("\(ai.headlineClass.capitalized) hemorrhage · AI \(String(format: "%.1f", p * 100))%")
+                        .font(.largeTitle.weight(.bold))
+                }
                 Text(state.loaded.info.title).font(.headline)
                 if lesions.isEmpty {
                     Text("No lesion labelled").font(.subheadline).foregroundStyle(.secondary)

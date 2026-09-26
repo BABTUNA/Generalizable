@@ -23,6 +23,8 @@ struct SliceUniforms {
     int   selected;         // organ raw value, 0 = none
     int   hasLabels;
     uint  mask[8];          // 256-bit visible-organ mask
+    float aiOpacity;
+    int   hasAI;
 };
 
 struct SliceVertex {
@@ -60,6 +62,12 @@ static inline uint labelAt(texture3d<uint, access::read> lab, int plane, int2 uv
     return lab.read(uint3(p)).r;
 }
 
+static inline float heatAt(texture3d<float, access::read> h, int plane, int2 uv, int s, int3 dims) {
+    int3 p = toVoxel(plane, uv.x, uv.y, s);
+    if (any(p < int3(0)) || any(p >= dims)) return 0;
+    return h.read(uint3(p)).r;
+}
+
 static inline bool visible(constant SliceUniforms &U, uint l) {
     return l != 0 && ((U.mask[l >> 5] >> (l & 31)) & 1u) != 0;
 }
@@ -68,7 +76,9 @@ fragment float4 sliceFragment(VOut in [[stage_in]],
                               constant SliceUniforms &U [[buffer(0)]],
                               texture3d<short, access::read> ct [[texture(0)]],
                               texture3d<uint, access::read> labels [[texture(1)]],
-                              texture1d<float, access::read> lut [[texture(2)]]) {
+                              texture1d<float, access::read> lut [[texture(2)]],
+                              texture3d<float, access::read> heat [[texture(3)]],
+                              texture1d<float, access::read> heatLUT [[texture(4)]]) {
     int3 dims = int3(ct.get_width(), ct.get_height(), ct.get_depth());
     int s = U.slice;
 
@@ -102,6 +112,18 @@ fragment float4 sliceFragment(VOut in [[stage_in]],
             }
             if (edge) a = sel ? 1.0 : max(a, 0.85);
             color = mix(color, sel && edge ? float3(1.0) * 0.3 + oc * 0.7 : oc, saturate(a));
+        }
+    }
+    // AI heatmap: NiiVue kFragSliceHead overlay blend, colormap = NiiVue inferno LUT;
+    // transparent below p = 0.15 (NiiVue cal_min behaviour), alpha ∝ p × opacity.
+    if (U.hasAI != 0) {
+        float p00 = heatAt(heat, U.plane, i0, s, dims), p10 = heatAt(heat, U.plane, i0 + int2(1, 0), s, dims);
+        float p01 = heatAt(heat, U.plane, i0 + int2(0, 1), s, dims), p11 = heatAt(heat, U.plane, i0 + int2(1, 1), s, dims);
+        float p = mix(mix(p00, p10, t.x), mix(p01, p11, t.x), t.y);
+        if (p > 0.15) {
+            float3 hc = heatLUT.read(uint(clamp(p * 255.0, 0.0, 255.0))).rgb;
+            float a = saturate(smoothstep(0.15, 0.3, p) * p * U.aiOpacity);
+            color = mix(color, hc, a);
         }
     }
     return float4(color, 1);

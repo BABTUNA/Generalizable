@@ -1,0 +1,612 @@
+{
+ "id": "PanTS_00000001",
+ "title": "Case 1",
+ "dims": [
+  256,
+  166,
+  200
+ ],
+ "spacing": [
+  1.25,
+  1.25,
+  0.8
+ ],
+ "originalDims": [
+  512,
+  333,
+  200
+ ],
+ "originalSpacing": [
+  0.625,
+  0.625,
+  0.8
+ ],
+ "downsampleFactor": [
+  2,
+  2,
+  1
+ ],
+ "affine": [
+  [
+   1.25,
+   0.0,
+   0.0,
+   -159.375
+  ],
+  [
+   0.0,
+   1.25,
+   0.0,
+   86.5
+  ],
+  [
+   0.0,
+   0.0,
+   0.8,
+   -451.0
+  ],
+  [
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "orientation": "RAS",
+ "thumbnail": "huggingface",
+ "note": "voxels/volumeML/meanHU/stdHU at original resolution; centroid/bbox in bundled canonical voxel coords (x,y,z); organ id = index in Organ.keys + 1",
+ "organs": {
+  "adrenal_gland_left": {
+   "id": 1,
+   "key": "adrenal_gland_left",
+   "voxels": 8278,
+   "volumeML": 2.587,
+   "meanHU": 9.9,
+   "stdHU": 36.2,
+   "bundledVoxels": 1919,
+   "centroid": [
+    102.93,
+    89.91,
+    86.74
+   ],
+   "bboxMin": [
+    99,
+    79,
+    58
+   ],
+   "bboxMax": [
+    108,
+    98,
+    109
+   ]
+  },
+  "adrenal_gland_right": {
+   "id": 2,
+   "key": "adrenal_gland_right",
+   "voxels": 2761,
+   "volumeML": 0.863,
+   "meanHU": 1.1,
+   "stdHU": 36.6,
+   "bundledVoxels": 749,
+   "centroid": [
+    151.06,
+    78.78,
+    101.01
+   ],
+   "bboxMin": [
+    146,
+    68,
+    92
+   ],
+   "bboxMax": [
+    155,
+    84,
+    117
+   ]
+  },
+  "aorta": {
+   "id": 3,
+   "key": "aorta",
+   "voxels": 156833,
+   "volumeML": 49.01,
+   "meanHU": 40.7,
+   "stdHU": 34.1,
+   "bundledVoxels": 37251,
+   "centroid": [
+    113.96,
+    86.76,
+    114.01
+   ],
+   "bboxMin": [
+    93,
+    59,
+    0
+   ],
+   "bboxMax": [
+    129,
+    109,
+    199
+   ]
+  },
+  "celiac_artery": {
+   "id": 5,
+   "key": "celiac_artery",
+   "voxels": 1356,
+   "volumeML": 0.424,
+   "meanHU": 37.3,
+   "stdHU": 32.5,
+   "bundledVoxels": 296,
+   "centroid": [
+    118.94,
+    102.89,
+    102.14
+   ],
+   "bboxMin": [
+    98,
+    97,
+    95
+   ],
+   "bboxMax": [
+    123,
+    109,
+    109
+   ]
+  },
+  "colon": {
+   "id": 6,
+   "key": "colon",
+   "voxels": 1295049,
+   "volumeML": 404.703,
+   "meanHU": -757.6,
+   "stdHU": 448.2,
+   "bundledVoxels": 319004,
+   "centroid": [
+    114.3,
+    108.51,
+    37.96
+   ],
+   "bboxMin": [
+    40,
+    61,
+    0
+   ],
+   "bboxMax": [
+    216,
+    141,
+    117
+   ]
+  },
+  "common_bile_duct": {
+   "id": 7,
+   "key": "common_bile_duct",
+   "voxels": 1692,
+   "volumeML": 0.529,
+   "meanHU": 4.2,
+   "stdHU": 38.0,
+   "bundledVoxels": 390,
+   "centroid": [
+    149.87,
+    99.39,
+    84.71
+   ],
+   "bboxMin": [
+    142,
+    94,
+    72
+   ],
+   "bboxMax": [
+    154,
+    109,
+    94
+   ]
+  },
+  "duodenum": {
+   "id": 8,
+   "key": "duodenum",
+   "voxels": 131266,
+   "volumeML": 41.021,
+   "meanHU": 15.8,
+   "stdHU": 110.8,
+   "bundledVoxels": 32133,
+   "centroid": [
+    149.4,
+    99.74,
+    51.92
+   ],
+   "bboxMin": [
+    93,
+    78,
+    6
+   ],
+   "bboxMax": [
+    180,
+    129,
+    102
+   ]
+  },
+  "gall_bladder": {
+   "id": 11,
+   "key": "gall_bladder",
+   "voxels": 12233,
+   "volumeML": 3.823,
+   "meanHU": 29.1,
+   "stdHU": 26.9,
+   "bundledVoxels": 2816,
+   "centroid": [
+    167.81,
+    108.35,
+    83.0
+   ],
+   "bboxMin": [
+    156,
+    96,
+    68
+   ],
+   "bboxMax": [
+    181,
+    129,
+    95
+   ]
+  },
+  "kidney_left": {
+   "id": 12,
+   "key": "kidney_left",
+   "voxels": 219386,
+   "volumeML": 68.558,
+   "meanHU": 22.4,
+   "stdHU": 30.4,
+   "bundledVoxels": 52184,
+   "centroid": [
+    85.27,
+    72.83,
+    56.0
+   ],
+   "bboxMin": [
+    65,
+    54,
+    8
+   ],
+   "bboxMax": [
+    108,
+    92,
+    99
+   ]
+  },
+  "kidney_right": {
+   "id": 13,
+   "key": "kidney_right",
+   "voxels": 285425,
+   "volumeML": 89.195,
+   "meanHU": 26.9,
+   "stdHU": 27.1,
+   "bundledVoxels": 68558,
+   "centroid": [
+    178.14,
+    62.81,
+    42.67
+   ],
+   "bboxMin": [
+    151,
+    42,
+    0
+   ],
+   "bboxMax": [
+    200,
+    85,
+    93
+   ]
+  },
+  "liver": {
+   "id": 14,
+   "key": "liver",
+   "voxels": 2428896,
+   "volumeML": 759.03,
+   "meanHU": 38.0,
+   "stdHU": 25.6,
+   "bundledVoxels": 597412,
+   "centroid": [
+    164.1,
+    97.08,
+    112.3
+   ],
+   "bboxMin": [
+    52,
+    40,
+    25
+   ],
+   "bboxMax": [
+    222,
+    140,
+    166
+   ]
+  },
+  "lung_left": {
+   "id": 15,
+   "key": "lung_left",
+   "voxels": 1562815,
+   "volumeML": 488.38,
+   "meanHU": -841.9,
+   "stdHU": 165.0,
+   "bundledVoxels": 383052,
+   "centroid": [
+    62.92,
+    70.0,
+    162.68
+   ],
+   "bboxMin": [
+    24,
+    25,
+    96
+   ],
+   "bboxMax": [
+    109,
+    135,
+    199
+   ]
+  },
+  "lung_right": {
+   "id": 16,
+   "key": "lung_right",
+   "voxels": 1674934,
+   "volumeML": 523.417,
+   "meanHU": -834.8,
+   "stdHU": 168.8,
+   "bundledVoxels": 410209,
+   "centroid": [
+    180.41,
+    75.93,
+    170.06
+   ],
+   "bboxMin": [
+    124,
+    25,
+    104
+   ],
+   "bboxMax": [
+    226,
+    136,
+    199
+   ]
+  },
+  "pancreas": {
+   "id": 17,
+   "key": "pancreas",
+   "voxels": 18,
+   "volumeML": 0.006,
+   "meanHU": 18.8,
+   "stdHU": 22.0,
+   "bundledVoxels": 2,
+   "centroid": [
+    106.0,
+    117.0,
+    81.5
+   ],
+   "bboxMin": [
+    106,
+    117,
+    81
+   ],
+   "bboxMax": [
+    106,
+    117,
+    82
+   ]
+  },
+  "pancreas_body": {
+   "id": 18,
+   "key": "pancreas_body",
+   "voxels": 46788,
+   "volumeML": 14.621,
+   "meanHU": 39.3,
+   "stdHU": 28.2,
+   "bundledVoxels": 11360,
+   "centroid": [
+    104.21,
+    105.13,
+    80.7
+   ],
+   "bboxMin": [
+    86,
+    91,
+    62
+   ],
+   "bboxMax": [
+    124,
+    119,
+    101
+   ]
+  },
+  "pancreas_head": {
+   "id": 19,
+   "key": "pancreas_head",
+   "voxels": 71883,
+   "volumeML": 22.463,
+   "meanHU": 42.2,
+   "stdHU": 27.4,
+   "bundledVoxels": 17071,
+   "centroid": [
+    147.42,
+    103.97,
+    64.08
+   ],
+   "bboxMin": [
+    119,
+    90,
+    36
+   ],
+   "bboxMax": [
+    177,
+    120,
+    91
+   ]
+  },
+  "pancreas_tail": {
+   "id": 20,
+   "key": "pancreas_tail",
+   "voxels": 62036,
+   "volumeML": 19.386,
+   "meanHU": 31.5,
+   "stdHU": 38.2,
+   "bundledVoxels": 14847,
+   "centroid": [
+    76.92,
+    86.57,
+    89.2
+   ],
+   "bboxMin": [
+    58,
+    70,
+    70
+   ],
+   "bboxMax": [
+    96,
+    104,
+    104
+   ]
+  },
+  "pancreatic_duct": {
+   "id": 21,
+   "key": "pancreatic_duct",
+   "voxels": 136,
+   "volumeML": 0.043,
+   "meanHU": 20.3,
+   "stdHU": 24.2,
+   "bundledVoxels": 28,
+   "centroid": [
+    145.71,
+    98.14,
+    57.79
+   ],
+   "bboxMin": [
+    144,
+    97,
+    54
+   ],
+   "bboxMax": [
+    148,
+    99,
+    61
+   ]
+  },
+  "pancreatic_lesion": {
+   "id": 22,
+   "key": "pancreatic_lesion",
+   "voxels": 52615,
+   "volumeML": 16.442,
+   "meanHU": 36.0,
+   "stdHU": 30.2,
+   "bundledVoxels": 11886,
+   "centroid": [
+    144.37,
+    92.6,
+    56.5
+   ],
+   "bboxMin": [
+    132,
+    78,
+    0
+   ],
+   "bboxMax": [
+    165,
+    104,
+    114
+   ]
+  },
+  "prostate": {
+   "id": 24,
+   "key": "prostate",
+   "voxels": 255914,
+   "volumeML": 79.973,
+   "meanHU": 45.2,
+   "stdHU": 30.2,
+   "bundledVoxels": 61962,
+   "centroid": [
+    65.55,
+    61.5,
+    99.5
+   ],
+   "bboxMin": [
+    37,
+    44,
+    53
+   ],
+   "bboxMax": [
+    96,
+    85,
+    138
+   ]
+  },
+  "spleen": {
+   "id": 25,
+   "key": "spleen",
+   "voxels": 186552,
+   "volumeML": 58.298,
+   "meanHU": 15.7,
+   "stdHU": 118.4,
+   "bundledVoxels": 45244,
+   "centroid": [
+    73.28,
+    88.4,
+    124.34
+   ],
+   "bboxMin": [
+    50,
+    70,
+    98
+   ],
+   "bboxMax": [
+    111,
+    109,
+    151
+   ]
+  },
+  "stomach": {
+   "id": 26,
+   "key": "stomach",
+   "voxels": 3349,
+   "volumeML": 1.047,
+   "meanHU": 38.2,
+   "stdHU": 32.4,
+   "bundledVoxels": 728,
+   "centroid": [
+    125.59,
+    106.27,
+    70.42
+   ],
+   "bboxMin": [
+    117,
+    100,
+    43
+   ],
+   "bboxMax": [
+    133,
+    111,
+    94
+   ]
+  },
+  "superior_mesenteric_artery": {
+   "id": 27,
+   "key": "superior_mesenteric_artery",
+   "voxels": 13537,
+   "volumeML": 4.23,
+   "meanHU": 40.1,
+   "stdHU": 28.8,
+   "bundledVoxels": 3171,
+   "centroid": [
+    146.65,
+    101.95,
+    91.79
+   ],
+   "bboxMin": [
+    65,
+    73,
+    24
+   ],
+   "bboxMax": [
+    167,
+    113,
+    109
+   ]
+  }
+ }
+}

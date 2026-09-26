@@ -35,6 +35,7 @@ struct VolumeView: View {
                     .padding(6).allowsHitTesting(false)
             }
             .clipped()
+            .onAppear { Render3DLaunchArgs.apply(state) }
     }
 }
 

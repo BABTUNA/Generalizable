@@ -28,7 +28,9 @@ import SwiftUI
 final class CaseCatalog {
     static let shared = CaseCatalog()
 
-    nonisolated static let heroID = "PanTS_00008205"
+    /// Hero ordering: the head CT carries the AI story, then the BodyMaps 8205 demo case.
+    nonisolated static let heroOrder = ["CQ500_CT_243", "PanTS_00008205"]
+    nonisolated static var heroID: String { heroOrder[0] }
     nonisolated static let hfBase = "https://huggingface.co/datasets/BodyMaps/iPanTSMini"
 
     var cases: [CaseInfo] = []
@@ -220,7 +222,7 @@ final class CaseCatalog {
             c.ctURL = ct
             c.labelURL = fm.fileExists(atPath: lab.path) ? lab : nil
             c.thumbnailURL = fm.fileExists(atPath: thumb.path) ? thumb : Self.remoteThumb(id)
-            return c
+            return Self.enrich(c, dir: d)
         }
         return nil
     }
@@ -278,18 +280,19 @@ final class CaseCatalog {
                 md["spacing"] = s.map { String(format: "%.2f", $0) }.joined(separator: "×") + " mm"
             }
             if let o = e.organs { md["organs"] = String(o.count) }
-            out.append(CaseInfo(
+            out.append(enrich(CaseInfo(
                 id: e.id,
                 title: e.title ?? defaultTitle(e.id),
                 ctURL: ct,
                 labelURL: fm.fileExists(atPath: lab.path) ? lab : nil,
                 thumbnailURL: fm.fileExists(atPath: thumb.path) ? thumb : remoteThumb(e.id),
                 metadata: md,
-                isBundled: true))
+                isBundled: true), dir: dir))
         }
         out.sort { a, b in
-            if a.id == heroID { return b.id != heroID }
-            if b.id == heroID { return false }
+            let ia = heroOrder.firstIndex(of: a.id) ?? Int.max
+            let ib = heroOrder.firstIndex(of: b.id) ?? Int.max
+            if ia != ib { return ia < ib }
             return idOrder(a.id, b.id)
         }
         return out
@@ -303,8 +306,59 @@ final class CaseCatalog {
     }
 
     nonisolated static func defaultTitle(_ id: String) -> String {
-        if let n = idNumber(id) { return "PanTS \(n)" }
+        "\(region(for: id)) · \(shortName(id))"
+    }
+
+    /// Body region from the dataset prefix (CQ500 = head CT, PanTS/CV = abdominal CT).
+    nonisolated static func region(for id: String) -> String {
+        id.uppercased().hasPrefix("CQ500") ? "Head CT" : "Abdomen CT"
+    }
+
+    /// "CQ500_CT_243" → "CQ500-243", "PanTS_00008205" → "PanTS 8205".
+    nonisolated static func shortName(_ id: String) -> String {
+        let parts = id.split(separator: "_")
+        if id.uppercased().hasPrefix("CQ500"), let last = parts.last { return "CQ500-\(last)" }
+        if let first = parts.first, parts.count >= 2, let n = Int(parts.last!) { return "\(first) \(n)" }
         return id
+    }
+
+    /// Reads meta.json / findings.json / ai.json from a case folder into CaseInfo.metadata:
+    /// "region", "name", "finding" (first finding title), "findingCount", "ai" (headline
+    /// class + probability), "aiModel", "license".
+    nonisolated static func enrich(_ c: CaseInfo, dir: URL) -> CaseInfo {
+        var c = c
+        c.metadata["region"] = region(for: c.id)
+        c.metadata["name"] = shortName(c.id)
+        if c.title == c.id || c.title.hasPrefix("PanTS ") || c.title.hasPrefix("Case ") || c.title == defaultTitle(c.id) {
+            c.title = defaultTitle(c.id)
+        }
+        if let fs = CaseFindings.load(dir: dir), let f = fs.first {
+            c.metadata["finding"] = f.title
+            c.metadata["findingCount"] = String(fs.count)
+        }
+        if let meta = jsonObject(dir.appendingPathComponent("meta.json")) {
+            if let lic = meta["license"] as? String { c.metadata["license"] = lic }
+            if let d = meta["dims"] as? [Int], d.count == 3 {
+                c.metadata["dims"] = d.map(String.init).joined(separator: "×")
+            }
+        }
+        if let ai = jsonObject(dir.appendingPathComponent("ai.json")) {
+            var headline = "AI"
+            if let cls = ai["headlineClass"] as? String,
+               let series = ai["series"] as? [[String: Any]],
+               let hit = series.first(where: { ($0["name"] as? String) == cls }),
+               let p = (hit["probability"] as? NSNumber)?.doubleValue {
+                headline = "\(cls.capitalized) \(Int((p * 100).rounded()))%"
+            }
+            c.metadata["ai"] = headline
+            if let m = ai["model"] as? String { c.metadata["aiModel"] = m }
+        }
+        return c
+    }
+
+    nonisolated private static func jsonObject(_ url: URL) -> [String: Any]? {
+        guard let d = try? Data(contentsOf: url) else { return nil }
+        return (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
     }
 
     nonisolated static func resolveURL(_ path: String) -> URL {

@@ -5,6 +5,14 @@
 // default camera sits on +z, so the patient is upright and faces the viewer.
 // Lesions render last, emissive and without depth testing, so they stay visible
 // through (or behind) every other organ; other organs share an adjustable opacity.
+//
+// Clip plane (ViewerState.clipNormal, driven by the Duo hinge): a SceneKit fragment shader
+// modifier discards everything on the positive side of the plane and paints a cyan rim
+// along the cut. The cut is "capped" with the classic back-face trick used for solid
+// cross-sections (e.g. three.js examples/webgl_clipping_stencil.html uses stencil +
+// BackSide; we use the stencil-free variant): a twin of each opaque organ renders only
+// its back faces in a flat, lighter organ colour, and those back faces are exactly what
+// shows through the hole the plane cuts in the front surface. Lesions are never clipped.
 
 import SwiftUI
 import SceneKit
@@ -30,6 +38,7 @@ struct MeshView: View {
                           extent: state.geometry.extentMM,
                           showPlane: showPlane,
                           focus: focus,
+                          clip: clipPlane,
                           resetToken: resetToken,
                           onSelect: { organ in
                               state.selectedOrgan = (organ == state.selectedOrgan) ? nil : organ
@@ -84,6 +93,17 @@ struct MeshView: View {
         }
         .background(Color(white: 0.05))
         .task(id: state.loaded.info.id) { await load() }
+        .onAppear { Render3DLaunchArgs.apply(state) }
+    }
+
+    /// Clip plane in scene space: xyz unit normal, w = d; keep dot(n, p) + d <= 0.
+    private var clipPlane: SIMD4<Float>? {
+        guard let n = state.clipNormal, simd_length(n) > 1e-6 else { return nil }
+        let g = state.geometry
+        let nm = simd_normalize(n / g.spacing)            // voxel → mm normal
+        let ns = SIMD3<Float>(-nm.x, nm.z, nm.y)          // mm (RAS) → scene
+        let c = SurfaceNets.sceneFromVoxel(state.cursor, g)
+        return SIMD4(ns, -simd_dot(ns, c))
     }
 
     private func load() async {
@@ -108,6 +128,24 @@ struct MeshView: View {
     }
 }
 
+/// Screenshot/demo hooks (launch arguments land in UserDefaults' argument domain):
+/// `-gz3DMode meshes|volume|mip`, `-gz3DLayout volumeFocus`, `-gzClipTilt <degrees>` (a Duo-style
+/// cut, normal (0, sin t, cos t) as in Duo/DuoSupport.swift). Applied once per launch.
+@MainActor enum Render3DLaunchArgs {
+    private static var applied = false
+    static func apply(_ state: ViewerState) {
+        guard !applied else { return }
+        applied = true
+        let d = UserDefaults.standard
+        if let m = d.string(forKey: "gz3DMode"), let v = VolumeRenderMode(rawValue: m) { state.volumeMode = v }
+        if let l = d.string(forKey: "gz3DLayout"), let v = ViewerLayout(rawValue: l) { state.layout = v }
+        if d.object(forKey: "gzClipTilt") != nil {
+            let t = Float(d.double(forKey: "gzClipTilt")) * .pi / 180
+            state.clipNormal = SIMD3<Float>(0, sin(t), cos(t))
+        }
+    }
+}
+
 // MARK: - SceneKit bridge
 
 private struct MeshSceneView: UIViewRepresentable {
@@ -119,6 +157,7 @@ private struct MeshSceneView: UIViewRepresentable {
     var extent: SIMD3<Float>
     var showPlane: Bool
     var focus: SIMD3<Float>
+    var clip: SIMD4<Float>?
     var resetToken: Int
     var onSelect: (Organ?) -> Void
 
@@ -156,6 +195,8 @@ private struct MeshSceneView: UIViewRepresentable {
         let planeNode = SCNNode()
         weak var view: SCNView?
         var nodes: [Organ: SCNNode] = [:]
+        var caps: [Organ: SCNNode] = [:]
+        let clipPlaneNode = SCNNode()
         var onSelect: ((Organ?) -> Void)?
         var lastFocus: SIMD3<Float>?
         var lastReset = 0
@@ -196,6 +237,11 @@ private struct MeshSceneView: UIViewRepresentable {
             planeNode.renderingOrder = 50
             planeNode.eulerAngles.x = -.pi / 2  // SCNPlane is in xy; lay it in xz (axial)
             scene.rootNode.addChildNode(planeNode)
+
+            clipPlaneNode.name = "clipPlane"
+            clipPlaneNode.renderingOrder = 60
+            clipPlaneNode.isHidden = true
+            scene.rootNode.addChildNode(clipPlaneNode)
         }
 
         func resetCamera(extent: SIMD3<Float>, focus: SIMD3<Float>) {
@@ -209,6 +255,16 @@ private struct MeshSceneView: UIViewRepresentable {
         func sync(_ p: MeshSceneView) {
             if p.extent != lastExtent {
                 lastExtent = p.extent
+                let side = CGFloat(simd_length(p.extent))
+                let cp = SCNPlane(width: side, height: side)
+                let cm = SCNMaterial()
+                cm.lightingModel = .constant
+                cm.diffuse.contents = UIColor(red: 0.3, green: 0.9, blue: 1, alpha: 1)
+                cm.transparency = 0.07
+                cm.isDoubleSided = true
+                cm.writesToDepthBuffer = false
+                cp.materials = [cm]
+                clipPlaneNode.geometry = cp
                 let plane = SCNPlane(width: CGFloat(p.extent.x), height: CGFloat(p.extent.y))
                 let pm = SCNMaterial()
                 pm.lightingModel = .constant
@@ -229,22 +285,63 @@ private struct MeshSceneView: UIViewRepresentable {
                 n.name = "organ:\(organ.rawValue)"
                 organRoot.addChildNode(n)
                 nodes[organ] = n
+                if !organ.isLesion && organ != .skin, let g = n.geometry?.copy() as? SCNGeometry {
+                    let cap = SCNNode(geometry: g)
+                    let cm = SCNMaterial()
+                    cm.lightingModel = .constant
+                    cm.cullMode = .front          // back faces only: the cut's cross-section
+                    cm.shaderModifiers = [.fragment: Self.clipModifier]
+                    let base = UIColor(organ.color)
+                    cm.diffuse.contents = base.blended(with: .white, 0.18)
+                    g.materials = [cm]
+                    cap.name = "organ:\(organ.rawValue)"
+                    cap.isHidden = true
+                    organRoot.addChildNode(cap)
+                    caps[organ] = cap
+                }
             }
             for (organ, n) in nodes where p.meshes[organ] == nil {
                 n.removeFromParentNode(); nodes[organ] = nil
+                caps[organ]?.removeFromParentNode(); caps[organ] = nil
             }
+            let clipOn = p.clip != nil
+            let plane = p.clip ?? SIMD4<Float>(0, 0, 1, 0)
+            let planeValue = NSValue(scnVector4: SCNVector4(plane.x, plane.y, plane.z, plane.w))
             for (organ, n) in nodes {
                 n.isHidden = !p.visible.contains(organ)
-                style(n, organ: organ, selected: p.selected, opacity: p.opacity)
+                let alpha = style(n, organ: organ, selected: p.selected, opacity: p.opacity, clipOn: clipOn)
+                if let m = n.geometry?.firstMaterial {
+                    m.setValue(planeValue, forKey: "gzClipPlane")
+                    m.setValue(NSNumber(value: clipOn && !organ.isLesion ? 1 : 0), forKey: "gzClipOn")
+                    m.setValue(NSNumber(value: 1), forKey: "gzRim")
+                }
+                if let cap = caps[organ], let cm = cap.geometry?.firstMaterial {
+                    cap.isHidden = !clipOn || n.isHidden || alpha < 0.999
+                    cap.renderingOrder = n.renderingOrder
+                    cm.setValue(planeValue, forKey: "gzClipPlane")
+                    cm.setValue(NSNumber(value: 1), forKey: "gzClipOn")
+                    cm.setValue(NSNumber(value: 0), forKey: "gzRim")
+                }
+            }
+            if let c = p.clip {
+                let n = SIMD3<Float>(c.x, c.y, c.z)
+                clipPlaneNode.isHidden = false
+                clipPlaneNode.simdOrientation = simd_quatf(from: SIMD3<Float>(0, 0, 1), to: n)
+                clipPlaneNode.simdPosition = p.cursorScene
+                _ = n
+            } else {
+                clipPlaneNode.isHidden = true
             }
 
             cursorNode.simdPosition = p.cursorScene
-            planeNode.isHidden = !p.showPlane
+            planeNode.isHidden = !p.showPlane || clipOn
             planeNode.simdPosition = SIMD3<Float>(0, p.cursorScene.y, 0)
         }
 
-        private func style(_ n: SCNNode, organ: Organ, selected: Organ?, opacity: Float) {
-            guard let m = n.geometry?.firstMaterial else { return }
+        /// Returns the organ's final opacity.
+        @discardableResult
+        private func style(_ n: SCNNode, organ: Organ, selected: Organ?, opacity: Float, clipOn: Bool) -> CGFloat {
+            guard let m = n.geometry?.firstMaterial else { return 0 }
             let base = UIColor(organ.color)
             m.diffuse.contents = base
             let isSel = selected == organ
@@ -252,11 +349,15 @@ private struct MeshSceneView: UIViewRepresentable {
             var alpha: CGFloat
             if organ.isLesion {
                 alpha = dimmed ? 0.55 : 1
-                m.emission.contents = base.withAlphaComponent(1).multiplied(isSel ? 0.7 : 0.45)
+                m.emission.contents = base.withAlphaComponent(1).multiplied(isSel ? 0.95 : 0.75)
                 m.readsFromDepthBuffer = false   // always visible through other organs
                 n.renderingOrder = isSel ? 120 : 100
             } else {
-                alpha = isSel ? 1 : (dimmed ? CGFloat(min(opacity, 0.18)) : CGFloat(opacity))
+                // Head CT layers: faint skin shell, semi-translucent skull, solid brain.
+                // While clipping, solid organs go opaque so the cut reads as a capped slab.
+                let layer: CGFloat = organ == .skin ? 0.14 : (organ == .skull && !clipOn ? 0.45 : 1)
+                let o: CGFloat = clipOn && organ != .skin ? 1 : CGFloat(opacity)
+                alpha = isSel ? 1 : (dimmed ? CGFloat(min(opacity, 0.18)) : o * layer)
                 m.emission.contents = isSel ? base.multiplied(0.25) : UIColor.black
                 m.readsFromDepthBuffer = true
                 n.renderingOrder = alpha < 0.999 ? 10 : 0
@@ -264,7 +365,25 @@ private struct MeshSceneView: UIViewRepresentable {
             m.transparency = alpha
             m.writesToDepthBuffer = alpha >= 0.999
             m.blendMode = .alpha
+            return alpha
         }
+
+        /// Fragment shader modifier: discard the positive half-space of gzClipPlane (scene
+        /// space == world space; organRoot has an identity transform) and add a rim at the cut.
+        static let clipModifier = """
+        #pragma arguments
+        float4 gzClipPlane;
+        float gzClipOn;
+        float gzRim;
+        #pragma body
+        if (gzClipOn > 0.5) {
+            float3 gzWP = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;
+            float gzD = dot(gzClipPlane.xyz, gzWP) + gzClipPlane.w;
+            if (gzD > 0.0) { discard_fragment(); }
+            float gzR = gzRim * (1.0 - smoothstep(0.0, 1.6, -gzD));
+            _output.color.rgb = mix(_output.color.rgb, float3(0.45, 0.95, 1.0) * _output.color.a, gzR);
+        }
+        """
 
         static func geometry(_ mesh: OrganMesh) -> SCNGeometry {
             let stride = MemoryLayout<SIMD3<Float>>.stride
@@ -287,6 +406,7 @@ private struct MeshSceneView: UIViewRepresentable {
             m.fresnelExponent = 1.5
             m.transparencyMode = .dualLayer
             m.isDoubleSided = false
+            m.shaderModifiers = [.fragment: clipModifier]
             g.materials = [m]
             return g
         }
@@ -309,6 +429,12 @@ private struct MeshSceneView: UIViewRepresentable {
 }
 
 private extension UIColor {
+    func blended(with o: UIColor, _ k: CGFloat) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a); o.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        return UIColor(red: r + (r2 - r) * k, green: g + (g2 - g) * k, blue: b + (b2 - b) * k, alpha: 1)
+    }
     func multiplied(_ k: CGFloat) -> UIColor {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         getRed(&r, green: &g, blue: &b, alpha: &a)

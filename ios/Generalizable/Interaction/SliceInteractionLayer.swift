@@ -42,8 +42,13 @@ struct SliceInteractionLayer: View {
                         .allowsHitTesting(false)
                         .animation(.easeOut(duration: 0.08), value: p)
                 }
-                HStack {
+                HStack(spacing: 2) {
                     Spacer()
+                    if plane == .axial, state.showAI, let ai = state.loaded.ai, !ai.sliceProbability.isEmpty {
+                        AIProbabilityTrack(state: state, ai: ai)
+                            .frame(width: 10)
+                            .padding(.vertical, 24)
+                    }
                     SliceScrubber(plane: plane, state: state, model: model)
                         .frame(width: 28)
                         .padding(.vertical, 24)

@@ -1,0 +1,27 @@
+{
+  "model": "ianpan/ct-head-hemorrhage-detection",
+  "via": "Hugging Face Hub (weights + inference.py)",
+  "device": "cpu",
+  "blind": true,
+  "label": "Research model, not a medical device \u2014 not a diagnosis",
+  "series_probability": {
+    "epidural": 0.009,
+    "intraparenchymal": 0.011,
+    "intraventricular": 0.003,
+    "subarachnoid": 0.024,
+    "subdural": 0.996,
+    "any": 0.998
+  },
+  "subdural_peak_slice_index": 198,
+  "expert_mask_slice_range": [
+    134,
+    240
+  ],
+  "peak_slice_inside_expert_range": true,
+  "subdural_heatmap_dice_vs_expert_mask": 0.686,
+  "runtime_s": {
+    "download_and_load": 30.3,
+    "inference": 1040.1
+  },
+  "slices": 294
+}
