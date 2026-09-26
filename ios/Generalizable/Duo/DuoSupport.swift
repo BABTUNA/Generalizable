@@ -37,6 +37,7 @@
 //   Scrub: θ → axial slice via the team's sliceFraction.
 // Posture layout (laptop / tent): upright half = axial 2D slice, flat half = 3D you can touch.
 
+import OSLog
 import SwiftUI
 import simd
 
@@ -123,6 +124,9 @@ struct DuoAdaptiveViewer<Content: View>: View {
     @State private var forcePill = false
     @State private var mapping: HingeMapping = .cut
     @State private var findings: [CaseFinding] = []
+    /// Put the cross-section on the other half, for devices/simulators that report the halves
+    /// the other way round (`-gzSwapHalves YES`, or the switch in the hinge panel).
+    @AppStorage("gzSwapHalves") private var swapHalves = false
 
     private var usingSim: Bool { simEnabled || realDegrees == nil }
     private var reading: HingeReading {
@@ -195,8 +199,11 @@ struct DuoAdaptiveViewer<Content: View>: View {
     private var lidTilt: Double { 180 - min(max(reading.degrees, 0), 180) }
 
     @ViewBuilder
-    private func foldedLayout(split: DuoHingeGeometry.Split) -> some View {
+    private func foldedLayout(split raw: DuoHingeGeometry.Split) -> some View {
         // split.first is the upright lid (top in laptop, left in book), split.second the flat base.
+        let split = swapHalves
+            ? DuoHingeGeometry.Split(first: raw.second, second: raw.first, seam: raw.seam, vertical: raw.vertical)
+            : raw
         ZStack(alignment: .topLeading) {
             Color.black
             if mapping == .cut {
@@ -328,6 +335,7 @@ struct DuoAdaptiveViewer<Content: View>: View {
             }.pickerStyle(.segmented)
             Text(mapping == .cut ? "Folded: lid = the slice through the cyan line, tilted by the fold; base = axial. Drag the handle to move the line." : "Folded: top = axial slice, bottom = 3D. \(mapping.hint).")
                 .font(.caption2).foregroundStyle(.secondary)
+            Toggle("Swap screens (cross-section on the other half)", isOn: $swapHalves).font(.caption)
             if realDegrees != nil {
                 Toggle("Override device hinge", isOn: $simEnabled).font(.caption)
             }
@@ -403,14 +411,24 @@ private struct HingeSeam: View {
 private struct HingeObserver: ViewModifier {
     @Binding var degrees: Double?
     @State private var lowPass = HingeLowPass()
+    /// PRD A10: Apple doesn't document whether angle 0 means closed or flat. Learned from the
+    /// endpoints, where `status` is authoritative: fully open reading ~0°, or closed reading
+    /// ~180°, means the device reports deflection-from-flat, so every angle is flipped.
+    @State private var flatReadsZero = false
+    private static let log = Logger(subsystem: "dev.patliu.generalizable", category: "hinge")
     func body(content: Content) -> some View {
         if #available(iOS 27.1, *) {
             content.onHingeChange { _, new in
                 if let h = new.hinge {
+                    let raw = h.angle.degrees
+                    Self.log.info("hinge status=\(String(describing: h.status), privacy: .public) angle=\(raw, privacy: .public)")
+                    if h.status == .fullyOpen, raw < 30 { flatReadsZero = true }
+                    if h.status == .closed, raw > 150 { flatReadsZero = true }
+                    let opening = min(max(flatReadsZero ? 180 - raw : raw, 0), 180)
                     // Status is authoritative for the endpoints; the angle can be coarse.
                     if h.status == .closed { lowPass.reset(0); degrees = 0 }
                     else if h.status == .fullyOpen { lowPass.reset(180); degrees = 180 }
-                    else { degrees = lowPass.update(min(max(h.angle.degrees, 0), 180)) }
+                    else { degrees = lowPass.update(opening) }
                 } else {
                     degrees = nil
                 }
