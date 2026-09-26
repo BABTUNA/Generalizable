@@ -1,5 +1,7 @@
 # Generalizable
 
+**Data:** see [`DATA.md`](DATA.md) for every dataset and link.
+
 > **DEMO ONLY: public open-source research data, not a diagnosis.** This is a 3-hour hackathon demo. Nothing in it is medical advice.
 
 Generalizable is one 3D viewer for any sliced volume. You pick a case, peel away its colored layers, and move a cut plane through it. The live cross-section follows the cut. On a CT scan you can switch between **Layers**, which shows what patients see, and **CT scan**, which shows what doctors see, while the cut stays where it is. On an iPhone Duo, the cut angle is meant to change by folding the device. The same viewer and controls work on a CQ500 head CT with a real bleed, on a whole-body CT, on the Sun and on a circuit board.

@@ -34,6 +34,10 @@ The Commander also lists every agent in the table in `coordination/TASKS.md`. If
 - **Claude workers (Sonnet) are subagents that the Commander session (`dqi26-a2`) spawns.** The Commander registers them, gives them their lane in the spawn prompt, and receives their final report directly. There are no free-standing worker sessions. `docs/worker-registration-prompt.md` is retired.
 - **Bitrig agents are prompted by Daniel inside Bitrig.** The Commander writes those prompts (`docs/bitrig-prompts.md`, or given in chat), and Daniel pastes them in and relays the replies. A Bitrig agent reports through its handoff file and its reply to Daniel.
 
+## Where the data is
+
+**See `DATA.md`.** It links every dataset, the app case folders, the `data/assets` branch (raw data and weights) and the source URLs.
+
 ## Then
 
 - Read `docs/ORCHESTRATION.md`, then `docs/PRD.md` (including its **Addenda**), then `coordination/TASKS.md`.
