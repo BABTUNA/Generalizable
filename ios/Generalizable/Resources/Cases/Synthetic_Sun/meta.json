@@ -1,0 +1,36 @@
+{
+  "dims": [
+    80,
+    80,
+    80
+  ],
+  "spacing_mm": [
+    10.0,
+    10.0,
+    10.0
+  ],
+  "origin_mm": [
+    -400.0,
+    -400.0,
+    -400.0
+  ],
+  "orientation": "RAS",
+  "dtypes": {
+    "ct": "int16",
+    "labels": "uint8"
+  },
+  "window_presets": {
+    "soft": [
+      800,
+      2000
+    ],
+    "density": [
+      1200,
+      3000
+    ]
+  },
+  "source": "Synthetic (generated for Generalizable demo)",
+  "license": "CC0",
+  "region": "The Sun",
+  "name": "Synthetic"
+}

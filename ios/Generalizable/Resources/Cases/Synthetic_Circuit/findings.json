@@ -1,0 +1,26 @@
+[
+  {
+    "id": "chip",
+    "label_id": 3,
+    "title": "The Chip Package",
+    "center_mm": [
+      0.0,
+      0.0,
+      -0.5
+    ],
+    "radius_mm": 15.0,
+    "explanation": "The chip package is the molded housing that protects the semiconductor die and routes its connections out to the board."
+  },
+  {
+    "id": "via",
+    "label_id": 5,
+    "title": "A Via",
+    "center_mm": [
+      -28.0,
+      0.0,
+      -3.25
+    ],
+    "radius_mm": 3.0,
+    "explanation": "A via is a plated hole that carries an electrical connection vertically between copper layers of the board."
+  }
+]

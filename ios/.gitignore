@@ -1,3 +1,11 @@
 Generalizable.xcodeproj/
 Generalizable/Resources/Cases/*
 !Generalizable/Resources/Cases/.keep
+# Bundled demo cases are committed on purpose (the demo runs offline); everything else in
+# Cases/ stays local. Without these, new case folders are silently left out of commits.
+!Generalizable/Resources/Cases/CQ500_CT_243/
+!Generalizable/Resources/Cases/PanTS_00000001/
+!Generalizable/Resources/Cases/PanTS_00000002/
+!Generalizable/Resources/Cases/PanTS_00008205/
+!Generalizable/Resources/Cases/Synthetic_Sun/
+!Generalizable/Resources/Cases/Synthetic_Circuit/
