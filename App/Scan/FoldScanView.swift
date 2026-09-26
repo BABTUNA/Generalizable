@@ -57,13 +57,13 @@ struct FoldScanView: View {
         } secondary: {
           VStack(spacing: 0) {
             studyHeader
-            CTSliceCanvas(frame: session.frame, overview: true)
-            Text("The blue line tracks your slice through the body.")
+            locatorCanvas
+            Text("Drag the blue line to choose a layer.")
               .font(.caption).foregroundStyle(.secondary).padding(16)
           }
         }
         .arrangementViewStyle(.split)
-      } else { HStack(spacing: 1) { CTSliceCanvas(frame: session.frame, overview: true); mainPane } }
+      } else { HStack(spacing: 1) { locatorCanvas; mainPane } }
     } else { mainPane }
   }
 
@@ -75,15 +75,10 @@ struct FoldScanView: View {
         .accessibilityAdjustableAction { direction in
           switch direction { case .increment: session.step(1); case .decrement: session.step(-1); @unknown default: break }
         }
-      if widthClass != .regular, !typeSize.isAccessibilitySize {
-        HStack(spacing: 16) {
-          CTSliceCanvas(frame: session.frame, overview: true)
-            .frame(width: 110, height: 140)
-          foldReadout
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
+      if widthClass != .regular {
+        locatorCanvas
+        Text("Drag the blue line to choose a layer.")
+          .font(.caption).foregroundStyle(.secondary).padding(8)
       }
       sliceControl
     }
@@ -119,19 +114,12 @@ struct FoldScanView: View {
     }
   }
 
-  private var foldReadout: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(session.followsFold ? "Fold to explore" : "Touch control")
-        .font(.headline)
-      Text(session.followsFold ? "Move through the body,\none layer at a time." : "Drag the slider to move\nthrough the scan.")
-        .font(.caption).foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      HStack(spacing: 6) {
-        Circle().fill(session.hingeAngle == nil ? Color.secondary : ScanStyle.accent).frame(width: 5, height: 5)
-        Text(session.hingeAngle.map { "\(Int($0.rounded()))° HINGE" } ?? "90° → 180°")
-          .font(.caption2.monospaced()).foregroundStyle(.secondary)
+  private var locatorCanvas: some View {
+    CTSliceCanvas(frame: session.frame, overview: true, onScrub: session.scrub)
+      .allowsHitTesting(session.frame?.key.axis == session.axis)
+      .accessibilityAdjustableAction { direction in
+        switch direction { case .increment: session.step(1); case .decrement: session.step(-1); @unknown default: break }
       }
-    }
   }
 
   private var sliceControl: some View {
@@ -144,11 +132,6 @@ struct FoldScanView: View {
         Toggle("Follow fold", isOn: Binding(get: { session.followsFold }, set: session.setFollowsFold))
           .toggleStyle(.button).font(.caption.weight(.medium))
       }
-      Slider(value: Binding(get: { session.position }, set: session.scrub), in: 0...1) {
-        Text("Slice depth")
-      }
-      .accessibilityValue("Layer \(session.sliceIndex + 1) of \(session.sliceCount)")
-      .disabled(session.volume == nil)
     }
     .padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 10)
   }

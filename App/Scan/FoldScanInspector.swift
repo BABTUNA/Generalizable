@@ -20,7 +20,7 @@ struct FoldScanInspector: View {
           if let angle = session.hingeAngle { LabeledContent("Hinge angle", value: "\(Int(angle.rounded()))°") }
           Button("Center slice", systemImage: "viewfinder") { session.scrub(0.5) }
         } header: { Text("Fold control") } footer: {
-          Text("180° selects the first layer. Folding toward 90° travels to the last. Touching the slider pauses fold control; turn Follow fold on to reconnect.")
+          Text("180° selects the first layer. Folding toward 90° travels to the last. Dragging the line on the torso pauses fold control; turn Follow fold on to reconnect.")
         }
         Section("Scan") {
           if let volume = session.volume {

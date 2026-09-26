@@ -3,6 +3,7 @@ import SwiftUI
 struct CTSliceCanvas: View {
   var frame: ScanFrame?
   var overview = false
+  var onScrub: ((Double) -> Void)?
 
   var body: some View {
     GeometryReader { geometry in
@@ -21,8 +22,10 @@ struct CTSliceCanvas: View {
               .overlay {
                 if overview {
                   GeometryReader { imageGeometry in
+                    let horizontalLine = frame.key.axis.rawValue == axis.verticalAxis
+                    let linePosition = (horizontalLine ? imageGeometry.size.height : imageGeometry.size.width) * (1 - frame.fraction)
                     Path { path in
-                      if frame.key.axis.rawValue == axis.verticalAxis {
+                      if horizontalLine {
                         let y = imageGeometry.size.height * (1 - frame.fraction)
                         path.move(to: CGPoint(x: 0, y: y))
                         path.addLine(to: CGPoint(x: imageGeometry.size.width, y: y))
@@ -32,10 +35,24 @@ struct CTSliceCanvas: View {
                         path.addLine(to: CGPoint(x: x, y: imageGeometry.size.height))
                       }
                     }
-                    .stroke(ScanStyle.accent, lineWidth: 1.5)
+                    .stroke(ScanStyle.accent, lineWidth: 2)
+                    .shadow(color: .black, radius: 2)
+                    Circle()
+                      .fill(ScanStyle.accent)
+                      .overlay { Circle().stroke(.white, lineWidth: 1.5) }
+                      .frame(width: 14, height: 14)
+                      .position(x: horizontalLine ? imageGeometry.size.width - 7 : linePosition,
+                        y: horizontalLine ? linePosition : imageGeometry.size.height - 7)
                   }
                 }
               }
+              .contentShape(Rectangle())
+              .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                guard overview, let onScrub else { return }
+                let horizontalLine = frame.key.axis.rawValue == axis.verticalAxis
+                let fraction = horizontalLine ? value.location.y / height : value.location.x / width
+                onScrub(min(1, max(0, 1 - fraction)))
+              })
           }
           VStack {
             HStack(alignment: .top) {
@@ -56,6 +73,7 @@ struct CTSliceCanvas: View {
           }
           .font(.caption2.monospaced())
           .padding(14)
+          .allowsHitTesting(false)
           if !overview {
             HStack {
               Text(axis.leftLabel)
@@ -81,6 +99,7 @@ struct CTSliceCanvas: View {
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(overview ? "\(frame?.key.axis.overviewAxis.title ?? "Scan") locator" : "\(frame?.key.axis.title ?? "CT") cross-section")
     .accessibilityValue(frame.map { "Slice \($0.key.index + 1) of \($0.count). \($0.key.window.rawValue) window. \(overview ? "Blue line marks the current slice." : "")" } ?? "Loading")
+    .accessibilityHint(overview && onScrub != nil ? "Drag the blue line to choose a layer, or swipe up and down to adjust." : "")
   }
 }
 
