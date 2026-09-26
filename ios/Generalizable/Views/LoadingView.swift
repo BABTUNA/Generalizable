@@ -46,7 +46,7 @@ struct LoadingView: View {
                 }
                 Spacer()
                 Button(action: onCancel) {
-                    Text(error == nil ? "Cancel" : "Back")
+                    Label(error == nil ? "Cancel" : "Back", systemImage: error == nil ? "xmark" : "chevron.left")
                         .font(Theme.ui(15, .semibold)).foregroundStyle(Theme.text)
                         .frame(maxWidth: 220).frame(height: 44)
                         .background(Capsule().fill(Theme.surfaceHi))
@@ -76,7 +76,7 @@ struct LoadingView: View {
                     .stroke(Theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(spin ? 360 : 0))
                     .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spin)
-                Image(systemName: info.id.uppercased().hasPrefix("CQ500") ? "brain.head.profile" : "lungs.fill")
+                Image(systemName: CaseThumbnail.fallback(for: info).symbol)
                     .font(.system(size: 30)).foregroundStyle(Theme.accent)
             }
         }
@@ -85,8 +85,12 @@ struct LoadingView: View {
 }
 
 /// Loads a thumbnail from a local file URL off the main thread, or remotely via AsyncImage.
+/// When there is no image (missing locally, or the remote fetch fails) it shows a tasteful
+/// icon placeholder instead of a blank/broken image.
 struct CaseThumbnail: View {
     var url: URL?
+    var fallbackSymbol: String = "lungs.fill"
+    var fallbackTint: Color = Theme.textTertiary
     @State private var image: UIImage?
 
     var body: some View {
@@ -94,7 +98,13 @@ struct CaseThumbnail: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else if let url, !url.isFileURL {
-                AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: { placeholder }
+                AsyncImage(url: url) { phase in
+                    if case .success(let img) = phase {
+                        img.resizable().scaledToFill()
+                    } else {
+                        placeholder
+                    }
+                }
             } else {
                 placeholder
             }
@@ -108,8 +118,28 @@ struct CaseThumbnail: View {
     private var placeholder: some View {
         ZStack {
             LinearGradient(colors: [Theme.surfaceHi, Theme.surface], startPoint: .topLeading, endPoint: .bottomTrailing)
-            Image(systemName: "lungs").font(.system(size: 34, weight: .ultraLight))
-                .foregroundStyle(Theme.textTertiary)
+            RadialGradient(colors: [fallbackTint.opacity(0.18), .clear], center: .center, startRadius: 2, endRadius: 90)
+            Image(systemName: fallbackSymbol).font(.system(size: 34, weight: .ultraLight))
+                .foregroundStyle(fallbackTint)
         }
+    }
+
+    /// Picks an icon + tint for a case from its metadata, for use both as this thumbnail's
+    /// placeholder and as the loading-ring glyph. Bundled demo cases (Sun, Circuit board)
+    /// have no CT-scan region, so they get a subject-appropriate icon instead of a generic one.
+    static func fallback(for info: CaseInfo) -> (symbol: String, tint: Color) {
+        let region = (info.metadata["region"] ?? "").lowercased()
+        let name = (info.metadata["name"] ?? "").lowercased()
+        let id = info.id.lowercased()
+        if region.contains("sun") || region.contains("star") || name.contains("sun") || id.contains("sun") {
+            return ("sun.max.fill", Color(red: 1.0, green: 0.7, blue: 0.25))
+        }
+        if region.contains("circuit") || name.contains("circuit") || id.contains("circuit") {
+            return ("cpu", Theme.accent)
+        }
+        if region.contains("head") || id.hasPrefix("cq500") {
+            return ("brain.head.profile", Theme.volumeColor)
+        }
+        return ("lungs.fill", Theme.textTertiary)
     }
 }
