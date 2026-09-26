@@ -44,3 +44,5 @@ data/work/
 data/out/
 data/.venv/
 __pycache__/
+Generalizable.xcodeproj/
+App/Info.plist

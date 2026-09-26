@@ -43,7 +43,15 @@
       },
       "sources": [
         {
-          "path": "App"
+          "path": "App",
+          "excludes": [
+            "Cases/**"
+          ]
+        },
+        {
+          "path": "App/Cases",
+          "type": "folder",
+          "buildPhase": "resources"
         }
       ],
       "type": "application"

@@ -225,3 +225,12 @@ The PRD says all findings are authored for the demo and that real patient data n
 1. **Framing:** CQ500 findings are real radiologist reads, not authored copy. The "synthetic content" label and the out-of-scope section need rewording along the lines of "public de-identified research data, shown for education; not a diagnosis." Only the pipeline's non-clinical-demo statement is settled so far.
 2. **Licence:** CQ500 is **CC BY-NC-SA 4.0**. That is fine for a hackathon demo, but it rules out commercial use of the head case, and derived bundles must carry the same licence. Visible Human (NLM T&C), Seg-CQ500 (CC BY 4.0), and TotalSegmentator (Apache-2.0) require attribution. Show credits in-app from `meta.json` `source`/`license` and `data/ATTRIBUTION.md`.
 3. **Repo:** decide whether the bundles (hundreds of MB) are committed, stored with Git LFS, or kept out of git and dropped into the app locally. The pipeline already gitignores only `data/raw/` and `data/work/`, not `data/out/`.
+
+### A9: Who builds the visualization code (Adopted, 2026-09-26, Commander under Daniel's goal "do not stop until the working demo is done")
+
+Every Bitrig step needs Daniel to paste the prompt, and Bitrig's permission rules block repository bootstrap commands. To make sure a demo exists:
+
+- **Commander Sonnet subagents write the L3b UI and L3c render code in the repo,** in the same paths and against the same contract (`docs/contracts/render-interface.md`).
+- They verify it locally with `scripts/build_sim.sh`. It generates `Generalizable.xcodeproj` from `Project.json` with XcodeGen (gitignored), builds for an iOS 27.0 / 26.5 simulator, launches the app and takes a screenshot.
+- **Bitrig remains the demo host.** It imports the branch, builds and runs it, and owns the **Duo hinge integration**, because the iOS 27.1 SDK and the Duo simulator exist only there. It also polishes the result.
+- `Project.json` now copies `App/Cases` as a folder reference, so the cases keep their `Cases/<name>/` paths.
