@@ -3,7 +3,7 @@
     "Debug": "debug",
     "Release": "release"
   },
-  "name": "Layer Lens",
+  "name": "Generalizable",
   "options": {
     "groupSortPosition": "bottom",
     "transitivelyLinkDependencies": false
@@ -12,12 +12,12 @@
     "CODE_SIGN_IDENTITY": "-"
   },
   "targets": {
-    "Layer Lens": {
+    "Generalizable": {
       "deploymentTarget": "26.0",
       "info": {
         "path": "App/Info.plist",
         "properties": {
-          "CFBundleDisplayName": "Layer Lens",
+          "CFBundleDisplayName": "Generalizable",
           "CFBundleShortVersionString": "1.0",
           "CFBundleVersion": "1",
           "ITSAppUsesNonExemptEncryption": false,

@@ -1,4 +1,4 @@
-# Layer Lens — Product Requirements Document
+# Generalizable — Product Requirements Document
 
 - **Status:** Draft for the Bitrig Hacks iPhone Duo pitch demo
 - **Date:** September 26, 2026
@@ -7,7 +7,7 @@
 
 ## Product summary
 
-Layer Lens helps someone understand the inside of a 3D subject. It pairs a source scan or model with named, colored layers and short explanations. The first demonstration is a doctor explaining a patient CT scan: the doctor points to a prepared finding, then folds iPhone Duo to change the angle of a cross-section through that same location. Two shorter examples, a circuit board and the Sun, show that the interaction can explain other subjects.
+Generalizable helps someone understand the inside of a 3D subject. It pairs a source scan or model with named, colored layers and short explanations. The first demonstration is a doctor explaining a patient CT scan: the doctor points to a prepared finding, then folds iPhone Duo to change the angle of a cross-section through that same location. Two shorter examples, a circuit board and the Sun, show that the interaction can explain other subjects.
 
 This release is a **synthetic, educational pitch demo**, not a diagnostic tool. All findings, labels, and explanations are authored for the demo. It does not analyze a scan or identify abnormalities on its own.
 
