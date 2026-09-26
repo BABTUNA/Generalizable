@@ -23,6 +23,8 @@ struct ViewerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showOrgans = false
     @State private var showReport = false
+    @State private var findings: [CaseFinding] = []
+    @State private var activeFinding: CaseFinding?
 
     var body: some View {
         DuoAdaptiveViewer(state: state) {
@@ -34,6 +36,11 @@ struct ViewerView: View {
                     .padding(.bottom, Theme.Space.s)
                 panes
                     .padding(.horizontal, 6)
+                if !findings.isEmpty {
+                    FindingBar(findings: findings, active: activeFinding,
+                               onSelect: jump(to:), onClose: { withAnimation(.snappy) { activeFinding = nil } })
+                        .padding(.horizontal, 6).padding(.top, 6)
+                }
                 ViewerStatusBar(state: state)
             }
             .background(Theme.bg.ignoresSafeArea())
@@ -41,6 +48,14 @@ struct ViewerView: View {
         .background(Theme.bg.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .task { _ = await OrganCentroids.stats(for: state.loaded) }   // warm the organ panel
+        .task {
+            findings = CaseFindings.load(for: state.loaded.info) ?? []
+            // `-selectFinding <id>` (scripted screenshots / demo): open straight onto a finding.
+            if UserDefaults.standard.object(forKey: "selectFinding") != nil,
+               let f = findings.first(where: { $0.id == UserDefaults.standard.integer(forKey: "selectFinding") }) {
+                jump(to: f)
+            }
+        }
         .sheet(isPresented: $showOrgans) {
             OrganListPanel(state: state)
                 .presentationDetents([.fraction(0.42), .large])
@@ -95,6 +110,17 @@ struct ViewerView: View {
         }
     }
 
+    /// Guided finding: all three slices move through its centre, the window switches to one
+    /// that shows thin extra-axial blood, and SliceView rings it.
+    private func jump(to f: CaseFinding) {
+        guard let v = f.voxel(in: state.geometry) else { return }
+        withAnimation(.snappy(duration: 0.3)) {
+            state.cursor = v
+            if state.loaded.info.id.uppercased().hasPrefix("CQ500") { state.window = .subdural }
+            activeFinding = f
+        }
+    }
+
     private func toggleMaximise(_ p: Plane?) {
         withAnimation(.snappy(duration: 0.32)) {
             if state.layout == .quad {
@@ -109,11 +135,11 @@ struct ViewerView: View {
         let focused = state.layout == .quad && state.focusedPlane == p
         return PaneChrome(
             title: p.gzTitle, badge: p.gzShort, tint: Theme.planeColor(p), focused: focused,
-            trailing: "",
+            trailing: "\(Int(state.slice(for: p)) + 1)/\(state.sliceCount(for: p))",
             maximised: state.layout != .quad,
             onExpand: { toggleMaximise(p) }
         ) {
-            SliceView(plane: p, state: state)
+            SliceView(plane: p, state: state, finding: activeFinding)
         }
         .simultaneousGesture(TapGesture(count: 2).onEnded { toggleMaximise(p) })
         .simultaneousGesture(TapGesture().onEnded { if state.focusedPlane != p { state.focusedPlane = p } })
@@ -156,18 +182,23 @@ private struct PaneChrome<Content: View>: View {
             Theme.pane
             content()
             HStack(alignment: .top, spacing: 6) {
-                // SliceView draws plane name, n/N and W/L itself; the chrome only adds the
-                // 3D badge and the expand control (no duplicate labels).
-                if trailing == nil {
-                    HStack(spacing: 5) {
-                        RoundedRectangle(cornerRadius: 2).fill(tint).frame(width: 3, height: 11)
-                        Text(badge).font(Theme.mono(10, .bold)).foregroundStyle(Theme.text)
-                    }
-                    .padding(.horizontal, 7).frame(height: 22)
-                    .background(Capsule().fill(.black.opacity(0.55)))
-                    .allowsHitTesting(false)
+                // The chrome is the only place the plane badge and n/N are drawn; SliceView
+                // draws just orientation letters, and W/L lives in the status bar.
+                HStack(spacing: 5) {
+                    RoundedRectangle(cornerRadius: 2).fill(tint).frame(width: 3, height: 11)
+                    Text(badge).font(Theme.mono(10, .bold)).foregroundStyle(Theme.text)
                 }
+                .padding(.horizontal, 7).frame(height: 22)
+                .background(Capsule().fill(.black.opacity(0.55)))
+                .allowsHitTesting(false)
                 Spacer(minLength: 0)
+                if let trailing {
+                    Text(trailing).font(Theme.mono(10, .medium)).foregroundStyle(Theme.textSecondary)
+                        .padding(.horizontal, 7).frame(height: 22)
+                        .background(Capsule().fill(.black.opacity(0.55)))
+                        .contentTransition(.numericText())
+                        .allowsHitTesting(false)
+                }
                 Button(action: onExpand) {
                     Image(systemName: maximised ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 10, weight: .bold))
@@ -187,6 +218,60 @@ private struct PaneChrome<Content: View>: View {
                 .allowsHitTesting(false)
         )
         .animation(.easeOut(duration: 0.15), value: focused)
+    }
+}
+
+// MARK: - Finding bar (guided finding)
+
+/// Collapsed: one "go to" capsule per finding. Selected: title + plain-language explanation.
+private struct FindingBar: View {
+    var findings: [CaseFinding]
+    var active: CaseFinding?
+    var onSelect: (CaseFinding) -> Void
+    var onClose: () -> Void
+
+    var body: some View {
+        if let f = active {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Circle().fill(Color.yellow).frame(width: 8, height: 8)
+                    Text(f.title).font(Theme.ui(14, .semibold)).foregroundStyle(Theme.text)
+                    Spacer()
+                    Button(action: onClose) {
+                        Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Theme.textSecondary).frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                }
+                if let e = f.explanation {
+                    Text(e).font(Theme.ui(12)).foregroundStyle(Theme.textSecondary)
+                        .lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .gzCard(radius: 14)
+            .transition(.opacity)
+        } else {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(findings) { f in
+                        Button { onSelect(f) } label: {
+                            HStack(spacing: 6) {
+                                Circle().fill(Color.red).frame(width: 7, height: 7)
+                                Text(f.title).font(Theme.ui(13, .semibold))
+                                Image(systemName: "scope").font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(Theme.text)
+                            .padding(.horizontal, 12).frame(height: 34)
+                            .background(Capsule().fill(Theme.surfaceHi.opacity(0.9)))
+                            .overlay(Capsule().strokeBorder(Theme.stroke))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
     }
 }
 
