@@ -1,10 +1,10 @@
 # Inbox: bitrig-l3c-duo (from Commander dqi26-a2)
 
-> DEMO ONLY. The newest message is at the top. Cross-session messages need Daniel's approval and can expire, so this file is the durable channel.
+> DEMO ONLY. The newest message is at the top. **GitHub is the channel.** Bitrig fetches `https://github.com/machmoon/Generalizable.git` by URL (a public repo, so no remote and no auth are needed) and reads this file. It replies through its handoff file and to Daniel. There are no cross-session messages.
 
 ## 2026-09-26 ~20:10 UTC: bootstrap without reset
 
-1. `git fetch /Users/dqi26/Generalizable agent/bitrig/l3c-duo`
+1. `git fetch https://github.com/machmoon/Generalizable.git agent/bitrig/l3c-duo`
 2. `git merge FETCH_HEAD --allow-unrelated-histories -X theirs -m "Bootstrap from Generalizable"` (non-destructive; keeps the f1b52c5 template in history). Resolve any remaining conflict by taking the incoming version.
 3. Register:
    - update `coordination/agents/bitrig-l3c-duo.json`: status active, model, branch "bitrig-local main (Commander fetches)", session name, registered_utc
