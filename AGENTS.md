@@ -31,12 +31,8 @@ The Commander also lists every agent in the table in `coordination/TASKS.md`. If
 
 ## Talking to the Commander
 
-The Commander is the Claude Code session **`dqi26-a2`**.
-
-- **Claude Code workers** message it with `SendMessage`. The Commander replies and assigns work to the `session` recorded in the worker's registration.
-- **Bitrig agents and workers on other machines** communicate through their handoff files and `coordination/inbox/<agent-id>.md`.
-
-To register a new Sonnet worker, see `docs/worker-registration-prompt.md`.
+- **Claude workers (Sonnet) are subagents that the Commander session (`dqi26-a2`) spawns.** The Commander registers them, gives them their lane in the spawn prompt, and receives their final report directly. There are no free-standing worker sessions. `docs/worker-registration-prompt.md` is retired.
+- **Bitrig agents are prompted by Daniel inside Bitrig.** The Commander writes those prompts (`docs/bitrig-prompts.md`, or given in chat), and Daniel pastes them in and relays the replies. A Bitrig agent reports through its handoff file and its reply to Daniel.
 
 ## Then
 

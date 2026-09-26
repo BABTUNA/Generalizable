@@ -23,7 +23,7 @@ This process is modelled on FlashTeX's orchestration. It keeps FlashTeX's Git + 
 | Role | Who | May | May not |
 |---|---|---|---|
 | **Commander** | Daniel's Claude Code session | Edit `coordination/TASKS.md` and `COMMANDER.md`, add PRD addenda, integrate lanes, commit to the demo branch | Write lane code while a worker owns that lane |
-| **Worker** | One agent per lane (Claude Code subagent, Codex, or Bitrig's agent) | Edit only the paths its lane owns, and write its own handoff | Edit another lane's paths, TASKS.md, or earlier PRD sections. Push to `main` |
+| **Worker** | One agent per lane: a Sonnet subagent spawned by the Commander, or Bitrig's agent prompted by Daniel | Edit only the paths its lane owns, and write its own handoff | Edit another lane's paths, TASKS.md, or earlier PRD sections. Push to `main` |
 | **Reviewer** | Fresh read-only agent | Read the diff, the contract and the check output, then report defects | See the worker's reasoning. Edit files |
 
 Only the Commander writes control state. If the Commander session dies, Daniel names the next one; there's no automatic failover.
