@@ -1,0 +1,38 @@
+# L3b-ui handoff
+
+- Task / state / UTC time: L3b UI (case list, viewer controls, banner, credits), built against `docs/contracts/render-interface.md` stubs. State: ready_for_integration. 2026-09-26, ~21:00 UTC.
+- Objective and acceptance criteria: Build the SwiftUI app shell and controls per the task brief and PRD (Pitch walkthrough, Functional requirements, Acceptance criteria, A1/A5/A6/A7), owning only `App/App.swift`, `App/ContentView.swift`, `App/UI/`, consuming `App/Core` as-is and the render-interface contract via stubs (no `App/Render`/`App/Duo`).
+- Files changed:
+  - `App/ContentView.swift` (modified): root `NavigationStack` titled "Generalizable", permanent `DemoBanner`, case list from `CaseCatalog.availableSummaries()` (head/body/sun/circuit order, only existing ones), Credits sheet, `-case`/`-credits` launch-arg handling.
+  - `App/UI/CaseCatalog.swift` (new): lightweight (no full `CaseBundle.load`) reads of `layers.json`/`meta.json` for the list and credits screens.
+  - `App/UI/DemoBanner.swift` (new): the permanent "Demo only…" banner.
+  - `App/UI/CreditsView.swift` (new): per-case `meta.source`/`meta.license`.
+  - `App/UI/LaunchArguments.swift` (new): parses `-case`, `-tilt`, `-hide`, `-mode`, `-select` for scripted screenshots; also mirrors `CaseBundle`'s private FNV-1a `stableHash` so `-select <string-id>` (e.g. `sunspot`) resolves against synthetic bundles' string finding ids.
+  - `App/UI/ViewerModel.swift` (new): `@Observable` viewer state — `bundle`, `cut: CutPlane`, `mode`, `hiddenLayerIDs`, `selectedFinding`, `windowPreset`; peel/reset/select actions; `halfExtentAlongNormal` (box-support-function bound for the slice slider).
+  - `App/UI/ViewerContainerView.swift` (new): loads `CaseBundle.bundled` off the main thread via `Task.detached`, with a spinner and a readable error.
+  - `App/UI/ViewerView.swift` (new): `DuoLayout(slice:, controls:)`, mode picker, layers section (swatches/blurbs/peel/reset toggles), findings/"points of interest" section with selected-finding detail card, tilt slider (0–90°) with a `HingeTiltDriver` TODO hook, slice slider bound to `cut.sliceOffsetMM`, Reset View, window-preset picker. Compact width shows a segmented Overview/Controls switch (`-panel controls` screenshot convenience); regular width shows overview above controls.
+  - `App/UI/RenderBindings.swift` (new): the **one file** to edit to swap stubs for the real render views — see "Interface notes" below.
+  - `App/UI/Stubs/RenderStubs.swift` (new): `SliceViewStub`/`OverviewViewStub`/`DuoAdaptiveLayoutStub`, same init signatures as the contract, drawing case name/tilt/offset/mode/hidden-count placeholders.
+- Checks run and result:
+  - `xcrun -sdk iphonesimulator swiftc -typecheck -target arm64-apple-ios26.0-simulator App/App.swift App/ContentView.swift App/Core/*.swift App/UI/*.swift App/UI/Stubs/*.swift` → **pass**, no output.
+  - `SIM_DEVICE="iPhone 17 Pro Max" scripts/build_sim.sh` → **BUILD OK** on every run below; used only the iPhone 17 Pro Max simulator per instructions.
+  - Screenshotted and eyeballed: case list, sun viewer (default + `-tilt 45 -hide 4,5 -mode ct -select sunspot`), circuit viewer, credits sheet, and the compact Controls tab (layers list with swatches/toggles). No clipping/overlap/unreadable text found; fixed one issue (see Fallbacks).
+  - Verified functionally via launch args in one run: `-mode ct` switched the mode label, `-tilt 45` set the tilt readout, `-hide 4,5` toggled off exactly Photosphere/Sunspot, `-select sunspot` selected "A Sunspot" — all simultaneously correct in the stub's echoed state.
+- Evidence paths (previews, logs):
+  - `/tmp/claude-503/l3b-1-list.png` — case list (The Sun, Circuit board; head/body not in this worktree yet).
+  - `/tmp/claude-503/l3b-2-sun.png`, `/tmp/claude-503/l3b-3-circuit.png` — viewers, default state.
+  - `/tmp/claude-503/l3b-5-sun-controls.png` — Controls tab (layers section).
+  - `/tmp/claude-503/l3b-6-sun-args.png` — all five launch args exercised together.
+  - `/tmp/claude-503/l3b-4-credits.png` — credits sheet.
+- Interface notes for other lanes:
+  - **The Commander's one-file swap**: in `App/UI/RenderBindings.swift`, change the three typealiases to `SliceCanvas = SliceView`, `OverviewCanvas = OverviewView`, `DuoLayout = DuoAdaptiveLayout`, and delete the local `enum SliceMode` at the top of that same file (L3c's `App/Render/SliceView.swift` defines the real one — keeping both is a duplicate-symbol error).
+  - **HingeTiltDriver wiring**: `App/UI/ViewerView.swift`, in `tiltSection` (search `TODO(Commander, after L3c merge)`), has the exact `@State`/`.onAppear`/`.onDisappear` snippet to instantiate `HingeTiltDriver`, bind it to `model.cut.tiltDegrees`, and start/stop it. `isHingeAvailable` just below it is currently a hardcoded `false` stub gating the "Fold the Duo…" caption — replace its body with `hingeTiltDriver.isHingeAvailable` once the driver exists.
+  - `App/UI/CaseCatalog.swift`'s display-name/order table already includes `head`→"Head CT" and `body`→"Body CT"; nothing else needs to change when those bundles land in `App/Cases/`.
+  - Two screenshot-only launch-arg conveniences beyond the task spec, both no-ops in normal use: `-credits` opens the Credits sheet on launch; `-panel controls` (checked as a bare substring in `CommandLine.arguments`, so pass it as e.g. `-panel controls`) starts the compact-width switch on the Controls tab instead of Overview.
+- Fallbacks taken / scope cut:
+  - Rotation control not built (A7 cuts it explicitly).
+  - iPad-specific layout polish not attempted beyond the regular/compact split (A7 cuts iPad polish beyond basic usability).
+  - Found the stub placeholder boxes left a large blank gap under short text (min-height only, no max-height) on first screenshot; fixed by giving `StubPlaceholder` `maxHeight: .infinity` so it fills its slot. Purely cosmetic, in a file the Commander deletes anyway.
+  - Tested locally against `App/Cases/sun` and `App/Cases/circuit` only (bundled in this worktree). Did **not** copy `App/Cases/body` from the main checkout — local-only per instructions, and nothing in `App/UI` special-cases it beyond the existing head/body display-name entries, so it should work unmodified once the Commander lands real bundles.
+- Blockers / requests: None. Head/Body CT bundles aren't in this worktree; `App/UI` needs no changes when they arrive (verified via the `-case`/display-name logic keyed only on directory name).
+- Next action (exact resumption step): Commander integrates this branch, then makes the two edits above (`App/UI/RenderBindings.swift` typealiases + `enum SliceMode` deletion; `HingeTiltDriver` wiring in `ViewerView.swift`'s `tiltSection`) once `App/Render`/`App/Duo` land.
