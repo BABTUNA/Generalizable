@@ -54,7 +54,7 @@ struct MeshView: View {
                     if loading {
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.mini)
-                            Text("Meshing \(meshes.count)/\(max(expected, meshes.count))")
+                            Text(expected > 0 ? "Meshing \(meshes.count)/\(max(expected, meshes.count))" : "Meshing…")
                         }
                         .font(.caption2.monospacedDigit())
                         .padding(.horizontal, 8).padding(.vertical, 4)
@@ -75,6 +75,7 @@ struct MeshView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                .padding(.top, 28)   // clear PaneChrome's badge row
                 Spacer()
                 HStack(spacing: 10) {
                     Image(systemName: "circle.lefthalf.filled").font(.caption)

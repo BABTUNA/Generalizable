@@ -160,7 +160,8 @@ struct ViewerView: View {
                     .init(value: $0, title: $0.gzTitle, icon: nil)
                 }, compact: true)
                 .scaleEffect(state.layout == .quad ? 0.86 : 1)
-                .padding(.bottom, 8)
+                // MeshView has its own bottom control capsule; sit above it instead of on it.
+                .padding(.bottom, state.volumeMode == .meshes ? 52 : 8)
             }
         }
     }
