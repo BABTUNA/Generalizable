@@ -37,7 +37,7 @@ final class ViewerModel {
         self.mode = launchArgs.mode?.lowercased() == "ct" ? .ct : .layers
         self.hiddenLayerIDs = launchArgs.hiddenLayerIDs ?? []
 
-        let preferredPreset = bundle.name == "head" ? "brain" : "soft"
+        let preferredPreset = bundle.name == "head" ? "brain" : (bundle.meta.windowPresets["density"] != nil ? "density" : "soft")
         if bundle.meta.windowPresets.keys.contains(preferredPreset) {
             self.windowPreset = preferredPreset
         } else {
