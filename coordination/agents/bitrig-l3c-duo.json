@@ -4,8 +4,10 @@
   "kind": "bitrig-agent",
   "model": "unknown",
   "machine": "bitrig-cloud (Daniel's second account)",
-  "lane": "L3c-render-duo",
-  "owns_paths": ["App/Render/", "App/Duo/"],
+  "lane": "L3c-duo-hinge (Bitrig: hinge + Duo sim verification + polish)",
+  "owns_paths": [
+    "App/Duo/DuoHingeSource.swift"
+  ],
   "branch": "agent/bitrig/l3c-duo",
   "handoff": "coordination/handoffs/L3c-render-duo.md",
   "registered_utc": "pending",

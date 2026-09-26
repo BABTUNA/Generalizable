@@ -1,0 +1,14 @@
+{
+  "agent_id": "cc-l3b-ui",
+  "role": "worker",
+  "kind": "claude-subagent",
+  "model": "claude-sonnet-5",
+  "machine": "Overpriced-Hardware",
+  "lane": "L3b-ui",
+  "owns_paths": ["App/App.swift","App/ContentView.swift","App/UI/"],
+  "branch": "agent/cc/l3b-ui (worktree)",
+  "handoff": "coordination/handoffs/L3b-ui.md",
+  "session": null,
+  "registered_utc": "2026-09-26T20:00:00Z",
+  "status": "active"
+}
