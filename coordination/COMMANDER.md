@@ -53,3 +53,16 @@
 - In Bitrig, the app builds and launches on the iPhone and iPad simulators.
 - **Blocked:** there's no Xcode 27.1 / iOS 27.1 SDK and no Duo simulator on this machine. The hinge API names come from Bitrig's Duo guide: SwiftUI `.onHingeChange(isEnabled:_:)` passes a `DeviceHingeContext` (`.hinge?.status` / `.angle`); UIKit has `UIHingeInteraction` and `UIHinge`. Units and range are unconfirmed.
 - The demo therefore uses the manual tilt slider (A3 fallback, A7 "should" tier). `DuoHingeSource.swift` gets written once Xcode 27.1 is installed and selected in Bitrig.
+
+## Progress: 2026-09-26 ~20:30 UTC local sim (update 4): demo working on the simulator
+
+- `main` = `demo/addenda-and-pipeline` = e54f4d8.
+- Full app verified on the iPhone 17 Pro and iPad Air simulators:
+  - all four cases load
+  - Metal slice with outlines and the finding ring
+  - 3D peel overview
+  - layer peeling, CT/layers modes, tilt and slice controls
+  - demo banner and credits
+- Fixed from the acceptance tour: the overview was black at tilt 0, the head slice was cropped, and peeling barely showed.
+- **Duo:** the hinge can't be built without the iOS 27.1 SDK (neither this Mac nor Bitrig has it). The demo uses the tilt slider (A3). Fold geometry and hinge conversion are unit-tested (`scripts/core_selftest.sh`, A10).
+- **Remaining:** Bitrig QA on this build (Daniel prompts it), and the L6 re-tour.
