@@ -1,0 +1,25 @@
+# L4-viz-reference handoff
+
+- **Task / state / UTC time:** Numpy viz reference + label cleanup for the body bundle. `ready_for_integration`, 2026-09-26 ~20:45 UTC.
+- **Objective and acceptance criteria:** Clean the fat/muscle speckle in `data/out/body`, add missing TotalSegmentator organs, produce a numpy reference (`render_ref.py`) for the oblique-slice and 3D-peel shaders the Metal render lane will port, and document exact parameters in `docs/viz/SPEC.md`.
+- **Files changed:**
+  - `scripts/viz/clean_labels.py` — `clean(labels, ct, meta, work_dir) -> (labels, extra_layers)` + CLI.
+  - `scripts/viz/render_ref.py` — numpy reference for both shaders + CLI that writes the PNGs.
+  - `docs/viz/SPEC.md` — parameters, per-pixel pseudocode, `App/Core` name mapping, Metal-specific notes.
+  - `docs/viz/*.png` (9 files, all <140KB, budget was ~300KB).
+- **Checks run and result:**
+  - `uv run --python 3.12 --with numpy --with scipy --with matplotlib --with nibabel python scripts/viz/clean_labels.py data/out/body data/work <out_dir>` → pass, ~15s. Speckle (fat/muscle connected components <5 voxels): **1515 before → 222 after** (85% reduction; 1422/429/217 after 1/2/3 filter passes alone). Added organ layers 13 Intestines, 14 Pancreas, 16 Bladder; 15 Gallbladder correctly skipped (TotalSegmentator found 0 voxels for it in this cadaver).
+  - `uv run ... python scripts/viz/render_ref.py data/out/body data/work` → pass, ~15s, writes 9 PNGs to `docs/viz/`.
+  - Viewed all PNGs by eye; iterated the cut-plane clip logic (see below) until the peel sequence read clearly: skin barely visible → fat/muscle hidden reveals skeleton+organs → +muscle hidden leaves clean bone/organs, no speckle carpet in any of them.
+- **Evidence paths:** `docs/viz/peel_all_layers.png`, `peel_hide_skin_fat.png`, `peel_hide_skin_fat_muscle.png`, `peel_cut_tilt{0,60,90}.png`, `slice_tilt{0,60,90}.png`.
+- **Interface notes for other lanes:**
+  - `data/out/body` itself is **untouched** — I never write there (L1 owns it). `clean_labels.py`'s CLI refuses an `out_dir` under `data/out`.
+  - For the render lane: `docs/viz/SPEC.md` has the exact per-pixel formulas, the `App/Core` name mapping (`CutPlane.originMM/uAxis/vAxis/normal`, `CaseBundle.textureCoord(forMM:)`), and two Metal-specific gotchas worth reading first — the texel-centre `+0.5` applies to the CT sampler only, never to a label `read()`; and labels must always be an integer `read()`, never a filtering sampler.
+  - The cut-plane clip test (`signed * dn < 0`, `dn = dot(rayDir, normal)`) degenerates at tilt 0 viewed head-on (ray parallel to plane, no per-ray crossing) — documented in SPEC.md §2, not a bug, just a case the render lane should recognize if tilt-0 cuts look different from tilt-60/90 ones.
+  - If the render lane wants the *cleaned* labels rather than raw `data/out/body/labels.raw`, it should call `clean_labels.clean()` itself (or L1/Commander can re-run the CLI into a location the app actually loads from) — I did not overwrite L1's bundle.
+- **Fallbacks taken / scope cut:**
+  - Peel renders use a 2x voxel stride for speed (`--peel-downsample`, default 2); slices render at full resolution. Noted in SPEC.md.
+  - Rotation (A1's second cut-plane angle) is held at 0 throughout — only tilt is exercised, per the task's ask.
+  - The peel camera is a fixed axis-aligned anterior view (ray along -y), not a general camera, since that's what all nine requested renders needed; SPEC.md notes which formulas still generalize directly (all of them except the "march whole y-slabs" bookkeeping trick used purely for speed).
+- **Blockers / requests:** None.
+- **Next action (exact resumption step):** None required for this lane's scope. If picked back up: `--peel-downsample 1` would render at full resolution if a sharper reference image is ever needed (slower, not attempted here under the time budget).
