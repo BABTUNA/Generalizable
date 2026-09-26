@@ -12,7 +12,7 @@
     "CODE_SIGN_IDENTITY": "-"
   },
   "targets": {
-    "Layer Lens": {
+    "Generalizable": {
       "deploymentTarget": "26.0",
       "info": {
         "path": "App/Info.plist",
