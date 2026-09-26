@@ -1,0 +1,34 @@
+{
+  "dims": [
+    96,
+    96,
+    32
+  ],
+  "spacing_mm": [
+    1.0,
+    1.0,
+    0.25
+  ],
+  "origin_mm": [
+    -48.0,
+    -48.0,
+    -4.0
+  ],
+  "orientation": "RAS",
+  "dtypes": {
+    "ct": "int16",
+    "labels": "uint8"
+  },
+  "window_presets": {
+    "soft": [
+      400,
+      1200
+    ],
+    "density": [
+      1400,
+      3800
+    ]
+  },
+  "source": "Synthetic (generated for Generalizable demo)",
+  "license": "CC0"
+}

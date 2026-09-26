@@ -1,0 +1,13 @@
+{
+  "agent_id": "cc-l1-data",
+  "role": "worker",
+  "kind": "claude-subagent",
+  "model": "claude-sonnet-5",
+  "machine": "Overpriced-Hardware",
+  "lane": "L1-data",
+  "owns_paths": ["data/ (except data/synth/)"],
+  "branch": "demo/addenda-and-pipeline",
+  "handoff": "coordination/handoffs/L1-data.md",
+  "registered_utc": "2026-09-26T19:29:15Z",
+  "status": "active"
+}

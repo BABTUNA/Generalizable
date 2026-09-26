@@ -1,0 +1,26 @@
+[
+  {
+    "id": "core",
+    "label_id": 1,
+    "title": "The Core",
+    "center_mm": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "radius_mm": 64.0,
+    "explanation": "The core is where immense pressure and temperature sustain the proton-proton fusion chain that converts hydrogen into helium."
+  },
+  {
+    "id": "sunspot",
+    "label_id": 5,
+    "title": "A Sunspot",
+    "center_mm": [
+      228.0,
+      131.63586137523464,
+      152.00000000000003
+    ],
+    "radius_mm": 40.0,
+    "explanation": "Sunspots are cooler patches where strong, concentrated magnetic field lines suppress convective heat transport to the surface."
+  }
+]

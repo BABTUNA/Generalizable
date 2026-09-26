@@ -1,0 +1,42 @@
+[
+  {
+    "id": 3,
+    "name": "Chip package",
+    "group": "package",
+    "color": "#2B2B2B",
+    "peel_order": 1,
+    "blurb": "The molded housing over the semiconductor die, on top of the board."
+  },
+  {
+    "id": 4,
+    "name": "Solder balls",
+    "group": "solder",
+    "color": "#C0C0C0",
+    "peel_order": 2,
+    "blurb": "A ball-grid array of solder bumps carrying signal and power between the chip and the board."
+  },
+  {
+    "id": 5,
+    "name": "Via",
+    "group": "via",
+    "color": "#D4AF37",
+    "peel_order": 3,
+    "blurb": "A plated hole connecting copper on different layers of the board."
+  },
+  {
+    "id": 2,
+    "name": "Copper traces",
+    "group": "trace",
+    "color": "#B87333",
+    "peel_order": 4,
+    "blurb": "Etched copper lines that carry electrical signals across the board surface."
+  },
+  {
+    "id": 1,
+    "name": "Substrate",
+    "group": "substrate",
+    "color": "#2E7D32",
+    "peel_order": 5,
+    "blurb": "The fiberglass (FR4) board body that everything else is mounted on."
+  }
+]

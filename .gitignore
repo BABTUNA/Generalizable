@@ -37,3 +37,10 @@ node_modules/
 # Build
 build/
 build-*/
+
+# Demo data (see docs/ORCHESTRATION.md)
+data/raw/
+data/work/
+data/out/
+data/.venv/
+__pycache__/

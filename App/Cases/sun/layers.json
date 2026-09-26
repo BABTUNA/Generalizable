@@ -1,0 +1,50 @@
+[
+  {
+    "id": 6,
+    "name": "Coronal loop",
+    "group": "feature",
+    "color": "#7FDBFF",
+    "peel_order": 1,
+    "blurb": "A loop of hot, tenuous plasma arcing above the surface, traced by the magnetic field."
+  },
+  {
+    "id": 4,
+    "name": "Photosphere",
+    "group": "region",
+    "color": "#FFD54A",
+    "peel_order": 2,
+    "blurb": "The visible surface of the Sun, where light escapes into space."
+  },
+  {
+    "id": 5,
+    "name": "Sunspot",
+    "group": "feature",
+    "color": "#5B3A29",
+    "peel_order": 3,
+    "blurb": "A cooler, darker patch on the photosphere caused by concentrated magnetic field lines."
+  },
+  {
+    "id": 3,
+    "name": "Convective zone",
+    "group": "region",
+    "color": "#FF8C42",
+    "peel_order": 4,
+    "blurb": "Hot plasma churns here in convection cells, carrying energy outward toward the surface."
+  },
+  {
+    "id": 2,
+    "name": "Radiative zone",
+    "group": "region",
+    "color": "#E8542A",
+    "peel_order": 5,
+    "blurb": "Energy moves outward here as radiation, taking a long time to random-walk through dense plasma."
+  },
+  {
+    "id": 1,
+    "name": "Core",
+    "group": "region",
+    "color": "#FFFDE0",
+    "peel_order": 6,
+    "blurb": "The innermost region, dense and hot enough to sustain nuclear fusion."
+  }
+]
