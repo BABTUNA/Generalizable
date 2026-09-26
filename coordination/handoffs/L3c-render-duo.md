@@ -1,0 +1,16 @@
+# L3c-duo-hinge handoff
+- Task / state / UTC time: Registered + Duo/hinge check; lane blocked (needs Xcode 27.1); 2026-09-26T20:05:57Z
+- Objective and acceptance criteria: Per PRD A9, own only `App/Duo/DuoHingeSource.swift`: the real iPhone Duo hinge source behind `#available(iOS 27.1, *)`, conforming to `HingeAngleSource` (`App/Core/CutPlane.swift`). Verify the whole app on the Duo simulator.
+- Files changed: `coordination/agents/bitrig-l3c-duo.json`, `coordination/handoffs/L3c-render-duo.md`
+- Checks run and result (command → pass/fail, key numbers): `git fetch https://github.com/machmoon/Generalizable.git agent/bitrig/l3c-duo` → pass (fcacfcf); `git merge FETCH_HEAD --allow-unrelated-histories -X theirs` → pass, no conflicts left.
+- Bitrig build (`build_project`, iPhone + iPad simulator, iOS 27.0 SDK) → **pass**, 0 diagnostics. Launched by Bitrig; `simulator_exec` could not read simulator state (2 tries), so the running UI was **not** confirmed by eye.
+- Toolchain: **Xcode 27.0 (27A266a) only.** SDKs: iphoneos27.0 / iphonesimulator27.0. Runtimes: iOS 26.5, 27.0. **No Xcode 27.1, no iOS 27.1 SDK/runtime, no iPhone Duo simulator** (Bitrig device list: iPhone 18 Pro/Pro Max, 17, 17e, Air, iPads only).
+- Hinge API (from Bitrig's bundled Duo guide, "verified against the 27.1 SDK"; NOT compiled here, grep of the 27.0 SDK finds no hinge symbols):
+  - SwiftUI: `.onHingeChange(isEnabled:_:)` → closure gets old/new `DeviceHingeContext`; `context.hinge` is nil on devices without a hinge, else has `status` (`.closed` / `.partiallyOpen` / `.fullyOpen`) and a continuous `angle`. Declared in SwiftUICore. Guide: reset derived state when status leaves `.partiallyOpen`.
+  - UIKit: `UIHingeInteraction` with an update handler delivering `UIHinge` (`status`, `angle`).
+  - **Units / range / "is 180 flat" / table-pose reading: UNKNOWN.** Not in the guide, not in the docs index, and the declarations aren't in the installed SDK. Needs Xcode 27.1 to read the interface. Don't assume degrees vs radians; A2 assumes degrees with 180 = flat.
+- Evidence paths (previews, logs): none (simulator state unreadable)
+- Interface notes for other lanes: Bitrig checkout is `/Users/dqi26/Library/Bitrig/Users/24227/Projects/ee4d1be2-b47c-47da-9bf9-4176745d6a59`, local `main`; Commander fetches read-only. Earlier local commit 734f327 made the same `App/Cases` folder-reference fix to Project.json that the Commander's branch already carries, so it merged cleanly.
+- Fallbacks taken / scope cut: none
+- Blockers / requests: **Blocked on Xcode 27.1.** `DuoHingeSource.swift` can't compile against the real API on the 27.0 SDK (the `#available(iOS 27.1, *)` guard doesn't help; the symbols don't exist at compile time). Daniel: install Xcode 27.1 and select it in Bitrig, then the Duo simulator appears. Fallback until then: keep `ManualOnlyHingeSource` (A3), and the manual tilt control remains the only input.
+- Next action (exact resumption step): once Xcode 27.1 is selected, read `DeviceHingeContext`/`UIHinge` in the SwiftUICore/UIKit interfaces for units and range, then write `App/Duo/DuoHingeSource.swift`.

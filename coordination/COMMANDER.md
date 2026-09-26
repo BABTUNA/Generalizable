@@ -46,3 +46,10 @@
 - **Raw data, NIfTI volumes, TotalSegmentator masks and model weights** are on the orphan branch `data/assets`, chunked to under 95 MB. Restore with `unpack.sh`.
 - **Orientation fix (7ee77ea):** `CutPlane` now uses the radiological convention. RAS +x is the patient's RIGHT; A4 is corrected.
 - **Next:** merge the L3c render and L3b UI branches, swap the stubs, and build and screenshot with `scripts/build_sim.sh`. Bitrig then fetches `agent/bitrig/l3c-duo` from GitHub by URL (see `coordination/inbox/bitrig-l3c-duo.md`).
+
+## Bitrig status: 2026-09-26 ~20:40 UTC
+
+- `bitrig-l3c-duo` **registered** (Bitrig commit 0344e82). The Commander imported its registration and handoff from Bitrig's checkout (b4bd5a5).
+- In Bitrig, the app builds and launches on the iPhone and iPad simulators.
+- **Blocked:** there's no Xcode 27.1 / iOS 27.1 SDK and no Duo simulator on this machine. The hinge API names come from Bitrig's Duo guide: SwiftUI `.onHingeChange(isEnabled:_:)` passes a `DeviceHingeContext` (`.hinge?.status` / `.angle`); UIKit has `UIHingeInteraction` and `UIHinge`. Units and range are unconfirmed.
+- The demo therefore uses the manual tilt slider (A3 fallback, A7 "should" tier). `DuoHingeSource.swift` gets written once Xcode 27.1 is installed and selected in Bitrig.

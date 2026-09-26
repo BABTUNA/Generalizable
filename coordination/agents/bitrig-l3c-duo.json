@@ -2,14 +2,15 @@
   "agent_id": "bitrig-l3c-duo",
   "role": "worker",
   "kind": "bitrig-agent",
-  "model": "unknown",
+  "model": "claude-opus-5-5",
   "machine": "bitrig-cloud (Daniel's second account)",
   "lane": "L3c-duo-hinge (Bitrig: hinge + Duo sim verification + polish)",
   "owns_paths": [
     "App/Duo/DuoHingeSource.swift"
   ],
-  "branch": "agent/bitrig/l3c-duo",
+  "branch": "bitrig-local main (Commander fetches)",
   "handoff": "coordination/handoffs/L3c-render-duo.md",
-  "registered_utc": "pending",
-  "status": "not-yet-registered: Bitrig confirms with its own first commit"
+  "session": "bitrig-l3c-duo (Bitrig project ee4d1be2-b47c-47da-9bf9-4176745d6a59)",
+  "registered_utc": "2026-09-26T20:05:57Z",
+  "status": "active"
 }
