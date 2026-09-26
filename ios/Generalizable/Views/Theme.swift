@@ -107,6 +107,8 @@ struct GeneralizableSegmented<T: Hashable>: View {
     @Binding var selection: T
     var items: [Item]
     var compact = false
+    /// Icon-only rows at phone width: tighter item padding.
+    var dense = false
     @Namespace private var ns
 
     var body: some View {
@@ -122,7 +124,7 @@ struct GeneralizableSegmented<T: Hashable>: View {
                         if let t = item.title { Text(t).font(Theme.ui(12, .semibold)) }
                     }
                     .foregroundStyle(on ? Color.white : Theme.textSecondary)
-                    .padding(.horizontal, compact ? 8 : 11)
+                    .padding(.horizontal, dense ? 5 : (compact ? 8 : 11))
                     .frame(height: 28)
                     .background {
                         if on {

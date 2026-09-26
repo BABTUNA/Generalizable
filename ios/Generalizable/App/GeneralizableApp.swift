@@ -1,11 +1,15 @@
 // Generalizable app entry. Owned by agent shell.
-// Launch with `-openCase PanTS_00008205` to skip the library and open a case directly
-// (launch arguments land in UserDefaults' argument domain).
+// The demo opens straight into the head CT (CaseCatalog.heroID). Launch with
+// `-openCase PanTS_00008205` to open another case, or `-openCase library` to start at the
+// library (launch arguments land in UserDefaults' argument domain).
 import SwiftUI
 
 @main
 struct GeneralizableApp: App {
-    private let autoOpen = UserDefaults.standard.string(forKey: "openCase")
+    private let autoOpen: String? = {
+        let arg = UserDefaults.standard.string(forKey: "openCase") ?? CaseCatalog.heroID
+        return arg == "library" ? nil : arg
+    }()
 
     init() {
         let nav = UINavigationBarAppearance()

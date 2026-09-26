@@ -348,7 +348,7 @@ final class CaseCatalog {
                let series = ai["series"] as? [[String: Any]],
                let hit = series.first(where: { ($0["name"] as? String) == cls }),
                let p = (hit["probability"] as? NSNumber)?.doubleValue {
-                headline = "\(cls.capitalized) \(Int((p * 100).rounded()))%"
+                headline = "\(cls.capitalized) " + (p >= 0.95 ? String(format: "%.1f%%", p * 100) : "\(Int((p * 100).rounded()))%")
             }
             c.metadata["ai"] = headline
             if let m = ai["model"] as? String { c.metadata["aiModel"] = m }

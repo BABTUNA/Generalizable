@@ -113,7 +113,7 @@ enum SurfaceNets {
     // MARK: extraction
 
     static func extract(_ labels: LabelVolume, organ: Organ, box: LabelBox,
-                        factor: Int? = nil, smoothIterations: Int = 12) -> OrganMesh? {
+                        factor: Int? = nil, smoothIterations: Int = 24) -> OrganMesh? {
         let g = labels.geometry
         let f = max(1, factor ?? defaultFactor(for: box))
         let label = organ.rawValue

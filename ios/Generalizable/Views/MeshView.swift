@@ -355,7 +355,7 @@ private struct MeshSceneView: UIViewRepresentable {
             } else {
                 // Head CT layers: faint skin shell, semi-translucent skull, solid brain.
                 // While clipping, solid organs go opaque so the cut reads as a capped slab.
-                let layer: CGFloat = organ == .skin ? 0.14 : (organ == .skull && !clipOn ? 0.45 : 1)
+                let layer: CGFloat = organ == .skin ? 0.09 : (organ == .skull && !clipOn ? 0.45 : 1)
                 let o: CGFloat = clipOn && organ != .skin ? 1 : CGFloat(opacity)
                 alpha = isSel ? 1 : (dimmed ? CGFloat(min(opacity, 0.18)) : o * layer)
                 m.emission.contents = isSel ? base.multiplied(0.25) : UIColor.black
