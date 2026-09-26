@@ -6,7 +6,7 @@ struct AppDefinition: App {
 
   var body: some Scene {
     WindowGroup {
-      CaseLibraryView()
+      GeneralizableHomeView()
         .environment(library)
     }
   }
