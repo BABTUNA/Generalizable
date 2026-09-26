@@ -30,30 +30,48 @@ struct ViewerToolbar: View {
                     showReport = true
                 }
             }
-            ScrollView(.horizontal) {
-                HStack(spacing: Theme.Space.s) {
-                    GeneralizableSegmented(selection: $state.activeTool, items: ViewerState.Tool.allCases.map {
-                        .init(value: $0, title: nil, icon: $0.gzIcon)
-                    }, compact: true)
-                    windowMenu
-                    labelsControl
-                    GeneralizableSegmented(selection: layoutBinding, items: ViewerLayout.allCases.map {
-                        .init(value: $0, title: nil, icon: $0.gzIcon)
-                    }, compact: true)
-                }
-                .padding(.vertical, 1)
+            // Fit the row at iPhone Duo portrait width: full labels when there is room,
+            // then a dense icon-first row, then horizontal scrolling as a last resort.
+            ViewThatFits(in: .horizontal) {
+                toolRow(dense: false)
+                toolRow(dense: true)
+                ScrollView(.horizontal) { toolRow(dense: true).padding(.vertical, 1) }
+                    .scrollIndicators(.hidden)
             }
-            .scrollIndicators(.hidden)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private func toolRow(dense: Bool) -> some View {
+        HStack(spacing: dense ? 6 : Theme.Space.s) {
+            GeneralizableSegmented(selection: $state.activeTool, items: ViewerState.Tool.allCases.map {
+                .init(value: $0, title: nil, icon: $0.gzIcon)
+            }, compact: true, dense: dense)
+            windowMenu(dense: dense)
+            labelsControl(dense: dense)
+            if !dense { Spacer(minLength: 0) }
+            GeneralizableSegmented(selection: layoutBinding, items: ViewerLayout.allCases.map {
+                .init(value: $0, title: nil, icon: $0.gzIcon)
+            }, compact: true, dense: dense)
+        }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var layoutBinding: Binding<ViewerLayout> {
         Binding(get: { state.layout }, set: { v in withAnimation(.snappy(duration: 0.3)) { state.layout = v } })
     }
 
-    private var windowMenu: some View {
+    /// Head CT (brain labelled): Brain / Subdural / Bone first, the standard neuro set.
+    private var presets: [WindowLevel] {
+        guard state.loaded.labels.map({ _ in state.visibleOrgans.contains(.brain) || state.window == .brain }) == true
+        else { return WindowLevel.presets }
+        let head: [WindowLevel] = [.brain, .subdural, .bone]
+        return head + WindowLevel.presets.filter { !head.contains($0) }
+    }
+
+    private func windowMenu(dense: Bool) -> some View {
         Menu {
-            ForEach(WindowLevel.presets) { p in
+            ForEach(presets) { p in
                 Button {
                     state.window = p
                 } label: {
@@ -66,21 +84,25 @@ struct ViewerToolbar: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "circle.lefthalf.filled").font(.system(size: 12, weight: .semibold))
+                if !dense {
+                    Image(systemName: "circle.lefthalf.filled").font(.system(size: 12, weight: .semibold))
+                }
                 Text(state.window.name).font(Theme.ui(12, .semibold)).lineLimit(1)
-                Text("\(Int(state.window.width))/\(Int(state.window.center))")
-                    .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary)
+                if !dense {
+                    Text("\(Int(state.window.width))/\(Int(state.window.center))")
+                        .font(Theme.mono(10.5)).foregroundStyle(Theme.textTertiary)
+                }
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
                     .foregroundStyle(Theme.textTertiary)
             }
             .foregroundStyle(Theme.text)
-            .padding(.horizontal, 11).frame(height: 34)
+            .padding(.horizontal, dense ? 9 : 11).frame(height: 34)
             .background(Capsule().fill(Theme.surfaceHi.opacity(0.9)))
             .overlay(Capsule().strokeBorder(Theme.stroke))
         }
     }
 
-    private var labelsControl: some View {
+    private func labelsControl(dense: Bool) -> some View {
         HStack(spacing: 0) {
             Button {
                 withAnimation(.snappy) { state.showLabels.toggle() }
@@ -88,10 +110,12 @@ struct ViewerToolbar: View {
                 Image(systemName: state.showLabels ? "eye.fill" : "eye.slash")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(state.showLabels ? Theme.accent : Theme.textSecondary)
-                    .frame(width: 34, height: 34)
+                    .frame(width: dense ? 32 : 34, height: 34)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .simultaneousGesture(LongPressGesture().onEnded { _ in showLabelPopover = true })
+            if !dense {
             Rectangle().fill(Theme.stroke).frame(width: 1, height: 18)
             Button { showLabelPopover = true } label: {
                 Text("\(Int((state.labelOpacity * 100).rounded()))%")
@@ -101,7 +125,9 @@ struct ViewerToolbar: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .popover(isPresented: $showLabelPopover) {
+            }
+        }
+        .popover(isPresented: $showLabelPopover) {
                 VStack(alignment: .leading, spacing: Theme.Space.m) {
                     HStack {
                         Text("Label opacity").font(Theme.ui(13, .semibold))
@@ -117,7 +143,6 @@ struct ViewerToolbar: View {
                 .padding(Theme.Space.l)
                 .frame(width: 260)
                 .presentationCompactAdaptation(.popover)
-            }
         }
         .background(Capsule().fill(Theme.surfaceHi.opacity(0.9)))
         .overlay(Capsule().strokeBorder(Theme.stroke))

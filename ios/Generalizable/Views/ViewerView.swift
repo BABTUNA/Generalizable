@@ -14,24 +14,36 @@
 //   presented as a non-modal sheet on iPhone (background interaction stays enabled).
 // - OHIF's `viewportActionMenu.topLeft` (orientation/data overlay per viewport) → our
 //   per-pane chrome: plane badge top-left, slice counter top-right.
+// - PanTS-Demo/src/components/OrganCheckbox.tsx `onJumpToOrgan` — a "Jump to" control next to
+//   a structure moves the crosshair to it; FindingStrip's "Jump to" does the same for a
+//   findings.json entry (center_mm → voxel through the inverse affine).
 // Deviation: OHIF's 1x1/2x2 layout selector plus double-click-to-maximise is kept, but on a
 // phone the 2×2 grid uses tap-to-focus + double-tap-to-maximise because panes are small.
 import SwiftUI
 
 struct ViewerView: View {
     @State var state: ViewerState
+    var onClose: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var showOrgans = false
     @State private var showReport = false
+    @State private var findings: [CaseFinding] = []
+    @State private var didApplyDefaults = false
 
     var body: some View {
         DuoAdaptiveViewer(state: state) {
             VStack(spacing: 0) {
-                ViewerToolbar(state: state, onBack: { dismiss() },
+                ViewerToolbar(state: state, onBack: { if let onClose { onClose() } else { dismiss() } },
                               showOrgans: $showOrgans, showReport: $showReport)
                     .padding(.horizontal, Theme.Space.m)
                     .padding(.top, Theme.Space.xs)
                     .padding(.bottom, Theme.Space.s)
+                if let f = findings.first {
+                    FindingStrip(finding: f, count: findings.count, state: state)
+                        .padding(.horizontal, 6)
+                        .padding(.bottom, 6)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 panes
                     .padding(.horizontal, 6)
                 ViewerStatusBar(state: state)
@@ -40,6 +52,7 @@ struct ViewerView: View {
         }
         .background(Theme.bg.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onAppear(perform: applyCaseDefaults)
         .task { _ = await OrganCentroids.stats(for: state.loaded) }   // warm the organ panel
         .sheet(isPresented: $showOrgans) {
             OrganListPanel(state: state)
@@ -54,6 +67,21 @@ struct ViewerView: View {
                 .presentationBackground(.regularMaterial)
                 .presentationCornerRadius(24)
         }
+    }
+
+    /// Head CT (labels contain brain): brain window, hemorrhage visible, findings loaded.
+    private func applyCaseDefaults() {
+        guard !didApplyDefaults else { return }
+        didApplyDefaults = true
+        if state.visibleOrgans.contains(.brain) {
+            state.window = .brain
+            // Lead with the finding: the brain/skull/skin fills wash out grey matter in a
+            // W80 window, so they start hidden (toggle them in the Structures panel).
+            state.visibleOrgans.subtract([.skin, .skull, .brain])
+            state.visibleOrgans.insert(.hemorrhage)
+        }
+        let fs = CaseFindings.load(for: state.loaded.info) ?? []
+        withAnimation(.snappy(duration: 0.3)) { findings = fs }
     }
 
     // MARK: Layouts
@@ -237,8 +265,72 @@ private struct ViewerStatusBar: View {
         }
         .font(Theme.mono(11))
         .lineLimit(1)
-        .padding(.leading, 72)   // Duo hinge chip (DuoSupport.swift) sits bottom-leading
-        .padding(.trailing, Theme.Space.l)
-        .frame(height: 40)
+        .padding(.horizontal, Theme.Space.l)
+        .frame(height: 32)
+    }
+}
+
+// MARK: - Finding strip (findings.json → chip + Jump to)
+
+private struct FindingStrip: View {
+    var finding: CaseFinding
+    var count: Int
+    @Bindable var state: ViewerState
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: Theme.Space.s) {
+                Button { withAnimation(.snappy(duration: 0.25)) { expanded.toggle() } } label: {
+                    HStack(spacing: 7) {
+                        Circle().fill(Organ.hemorrhage.color).frame(width: 8, height: 8)
+                            .shadow(color: Organ.hemorrhage.color.opacity(0.8), radius: 4)
+                        Text(finding.title).font(Theme.ui(13, .semibold)).foregroundStyle(Theme.text)
+                            .lineLimit(1)
+                        if count > 1 {
+                            Text("+\(count - 1)").font(Theme.mono(10.5, .semibold)).foregroundStyle(Theme.textTertiary)
+                        }
+                        Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.textTertiary)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                Button(action: jump) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "scope").font(.system(size: 11, weight: .bold))
+                        Text("Jump to").font(Theme.ui(12, .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10).frame(height: 28)
+                    .background(Capsule().fill(Organ.hemorrhage.color.opacity(0.85)))
+                }
+                .buttonStyle(.plain)
+                .sensoryFeedback(.impact(weight: .light), trigger: state.cursor)
+            }
+            if expanded, let e = finding.explanation {
+                Text(e).font(Theme.ui(12)).foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
+            }
+        }
+        .padding(.leading, 12).padding(.trailing, 5).padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(Organ.hemorrhage.color.opacity(0.35)))
+    }
+
+    private func jump() {
+        guard let v = finding.voxel(in: state.geometry) else { return }
+        withAnimation(.snappy(duration: 0.25)) {
+            state.cursor = v
+            if let id = finding.labelID, id > 0 {
+                // label_id is the source mask's value; hemorrhage is the only head finding.
+                state.visibleOrgans.insert(.hemorrhage)
+            }
+            state.showLabels = true
+        }
     }
 }

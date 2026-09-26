@@ -46,7 +46,8 @@ struct SliceInteractionLayer: View {
                     Spacer()
                     if plane == .axial, state.showAI, let ai = state.loaded.ai, !ai.sliceProbability.isEmpty {
                         AIProbabilityTrack(state: state, ai: ai)
-                            .frame(width: 10)
+                            .frame(width: 12)
+                            .shadow(color: .black.opacity(0.6), radius: 1)
                             .padding(.vertical, 24)
                     }
                     SliceScrubber(plane: plane, state: state, model: model)

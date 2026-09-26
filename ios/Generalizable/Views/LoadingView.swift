@@ -27,6 +27,9 @@ struct LoadingView: View {
                     Text(info.title).font(Theme.ui(20, .semibold)).foregroundStyle(Theme.text)
                         .multilineTextAlignment(.center)
                     Text(info.id).font(Theme.mono(12)).foregroundStyle(Theme.textSecondary)
+                    if let f = info.metadata["finding"] {
+                        GeneralizableChip(text: f, tint: Theme.text)
+                    }
                 }
                 if let error {
                     VStack(spacing: Theme.Space.m) {
@@ -73,7 +76,8 @@ struct LoadingView: View {
                     .stroke(Theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(spin ? 360 : 0))
                     .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spin)
-                Image(systemName: "lungs.fill").font(.system(size: 30)).foregroundStyle(Theme.accent)
+                Image(systemName: info.id.uppercased().hasPrefix("CQ500") ? "brain.head.profile" : "lungs.fill")
+                    .font(.system(size: 30)).foregroundStyle(Theme.accent)
             }
         }
         .frame(width: 120, height: 120)

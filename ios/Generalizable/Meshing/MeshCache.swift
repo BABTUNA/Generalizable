@@ -67,7 +67,7 @@ final class MeshCache: @unchecked Sendable {
                             if Task.isCancelled { return nil }
                             let t0 = Date()
                             let m = SurfaceNets.extract(labels, organ: organ, box: box)
-                            print(String(format: "[mesh] %@ %@: %d vox, %d tris, %.2fs", id, organ.key,
+                            NSLog("%@", String(format: "[mesh] %@ %@: %d vox, %d tris, %.2fs", id, organ.key,
                                          box.voxelCount, m?.triangleCount ?? 0, Date().timeIntervalSince(t0)))
                             return m
                         }
